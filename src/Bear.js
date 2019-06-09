@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { last, escapeRegExp, debounce } from "lodash";
 import styled from "styled-components";
 
@@ -7,6 +7,7 @@ let BearStyle = styled.div`
   white-space: pre-wrap;
 
   font-size: inherit;
+  z-index: 0;
   /* line-height: 24px; */
 
   & .pre {
@@ -19,11 +20,12 @@ let BearStyle = styled.div`
 
     & span:not(.subtle) {
       /* Not sure why, but need this to show above the ::before */
-      opacity: 0.9;
+      /* opacity: 0.9; */
     }
 
     &::before {
       content: "";
+      z-index: -1;
 
       position: absolute;
       top: 0;
@@ -55,7 +57,7 @@ let BearStyle = styled.div`
   .header-1, .header-2, .header-3 {
     &:not(:first-child) {
       display: inline-block;
-      margin-top: 6px;
+      margin-bottom: 6px;
     }
 
     .subtle {
@@ -129,36 +131,51 @@ let get_text_nodes = element => {
   return text_nodes;
 };
 
-function getCaretData(root_element, initial_position) {
+function getCaretData(root_element, start, end) {
   let nodes = get_text_nodes(root_element);
-  let position = initial_position;
+  let position = 0;
+
+  let start_result = null;
+  let end_result = null;
 
   for (let node of nodes) {
-    if (position > node.nodeValue.length) {
-      // remove amount from the position, go to next node
-      position = position - node.nodeValue.length;
-    } else {
+    if (start_result == null) {
+      if (position + node.nodeValue.length > start) {
+        // remove amount from the position, go to next node
+        start_result = { node: node, offset: start - position };
+      }
+    }
+    if (end_result == null) {
+      if (position + node.nodeValue.length > end) {
+        // remove amount from the position, go to next node
+        end_result = { node: node, offset: end - position };
+      }
+    }
+
+    if (start_result != null && end_result != null) {
       return {
-        node: node,
-        position: position
+        start: start_result,
+        end: end_result
       };
     }
+
+    position = position + node.nodeValue.length;
   }
 
-  return { node: last(nodes), position: position };
+  return {
+    start: start_result || { node: last(nodes), position: position },
+    end: end_result || { node: last(nodes), position: position }
+  };
 }
 
 // setting the caret with this info  is also standard
 let setCaretPosition = d => {
-  if (d.node == null) {
-    return;
-  }
-
   try {
-    let sel = window.getSelection(),
-      range = document.createRange();
-    range.setStart(d.node, d.position);
-    range.collapse(true);
+    let sel = window.getSelection();
+    let range = document.createRange();
+    range.setStart(d.start.node, d.start.offset);
+    range.setEnd(d.end.node, d.end.offset);
+    // range.collapse(true);
     sel.removeAllRanges();
     sel.addRange(range);
   } catch (err) {
@@ -213,12 +230,17 @@ let markdown_style_boundaries = boundary => {
 
 let url_regex = /( |^|\n)((?:http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+(?:[-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(?::[0-9]{1,5})?(?:\/.*)?)(?= |$|\n)/g;
 
-let bearify = text => {
+let bearify = (text, is_meta = false) => {
   // TODO Replace with /proper/ markdown-like bear (that keeps all characters for cursor consistent)
   let content = text
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(url_regex, `$1<a href="$2">$2</a>`)
+    .replace(
+      url_regex,
+      `$1<a target="_blank" contenteditable="${
+        is_meta ? "false" : "true"
+      }" href="$2" title="⌘/ctrl + click to open">$2</a>`
+    )
     .replace(
       markdown_style_boundaries("_"),
       // /_([^ _](?:[^_]*[^ _])?)_/g,
@@ -280,8 +302,10 @@ let get_current_carret_position = element => {
   let text = element.innerText || "";
 
   return {
-    end_offset,
-    start_offset,
+    position: {
+      end: end_offset,
+      start: start_offset
+    },
     text: {
       before: text.slice(0, start_offset),
       selected: text.slice(start_offset, end_offset),
@@ -290,7 +314,60 @@ let get_current_carret_position = element => {
   };
 };
 
+let useEvent = ({ target, name, onEvent, passive, capture }) => {
+  useEffect(() => {
+    target.addEventListener(name, onEvent, { capture, passive });
+
+    return () => {
+      target.removeEventListener(name, onEvent);
+    };
+  });
+};
+
+let Keyboard = ({ onMetaChange }) => {
+  useEvent({
+    target: document,
+    name: "keydown",
+    onEvent: event => {
+      let is_meta = event.metaKey || event.ctrlKey;
+      if (is_meta) {
+        onMetaChange(true);
+      }
+    }
+  });
+  useEvent({
+    target: document,
+    name: "keyup",
+    onEvent: event => {
+      let is_meta = event.metaKey || event.ctrlKey;
+      if (!is_meta) {
+        onMetaChange(false);
+      }
+    }
+  });
+
+  // let handler = event => {
+  //   console.log("event:", event);
+  // };
+  // let anchors = scope_ref.querySelectorAll("a");
+  // for (let anchor of anchors) {
+  //   anchor.addEventListener("click", handler);
+  // }
+
+  // return () => {
+  //   for (let anchor of anchors) {
+  //     anchor.removeEventListener("click", handler);
+  //   }
+  // };
+
+  return null;
+};
+
 class ContentEditable extends React.Component {
+  state = {
+    meta_active: false
+  };
+
   next_cursor_position = null;
   just_did_redo = false;
   just_did_undo = false;
@@ -300,7 +377,6 @@ class ContentEditable extends React.Component {
   redo_stack = [];
   save_undo = debounce(
     ({ content, cursor_position }) => {
-      console.log("cursor_position:", cursor_position);
       let last_stack = this.undo_stack[this.undo_stack.length - 1];
       if (last_stack == null || last_stack.content !== content) {
         this.undo_stack.push({ content, cursor_position });
@@ -314,10 +390,6 @@ class ContentEditable extends React.Component {
   );
 
   getSnapshotBeforeUpdate(prevProps) {
-    if (prevProps.content === this.props.content) {
-      return null;
-    }
-
     if (document.activeElement !== this._element) {
       return null;
     }
@@ -325,8 +397,8 @@ class ContentEditable extends React.Component {
     if (this.next_cursor_position != null) {
       return this.next_cursor_position;
     } else {
-      let { end_offset } = get_current_carret_position(this._element);
-      return end_offset;
+      let { position } = get_current_carret_position(this._element);
+      return position;
     }
   }
 
@@ -354,10 +426,11 @@ class ContentEditable extends React.Component {
     }
 
     if (snapshot != null) {
-      var data = getCaretData(this._element, snapshot);
+      var data = getCaretData(this._element, snapshot.start, snapshot.end);
+      setCaretPosition(data);
+
       this.previous_cursor_position = snapshot;
       this.next_cursor_position = null;
-      setCaretPosition(data);
     }
   }
 
@@ -384,6 +457,7 @@ class ContentEditable extends React.Component {
   }
 
   _onKeyDown = ev => {
+    // ev.preventDefault();
     let { multiline } = this.props;
 
     let is_meta = ev.metaKey || ev.ctrlKey;
@@ -413,13 +487,13 @@ class ContentEditable extends React.Component {
     if (is_meta && ev.key === "b") {
       let {
         text: { before, selected, after },
-        end_offset
+        position
       } = get_current_carret_position(this._element);
       let value = `${before}*${selected}*${after}`;
 
       this.onChange(value);
 
-      this.next_cursor_position = end_offset + 2;
+      this.next_cursor_position = position.end + 2;
       return;
     }
 
@@ -427,12 +501,12 @@ class ContentEditable extends React.Component {
     if (is_meta && ev.key === "i") {
       let {
         text: { before, selected, after },
-        end_offset
+        position
       } = get_current_carret_position(this._element);
       let value = `${before}/${selected}/${after}`;
 
       this.onChange(value);
-      this.next_cursor_position = end_offset + 2;
+      this.next_cursor_position = position.end + 2;
       return;
     }
 
@@ -440,12 +514,12 @@ class ContentEditable extends React.Component {
     if (is_meta && ev.key === "u") {
       let {
         text: { before, selected, after },
-        end_offset
+        position
       } = get_current_carret_position(this._element);
       let value = `${before}_${selected}_${after}`;
 
       this.onChange(value);
-      this.next_cursor_position = end_offset + 2;
+      this.next_cursor_position = position.end + 2;
       return;
     }
 
@@ -456,12 +530,12 @@ class ContentEditable extends React.Component {
 
           let {
             text: { before, selected, after },
-            end_offset
+            position
           } = get_current_carret_position(this._element);
 
           let value = `${before}\n${after === "" ? "\n" : after}`;
 
-          this.next_cursor_position = end_offset + 1;
+          this.next_cursor_position = position.end + 1;
           this.onChange(value);
         }
       } else {
@@ -481,23 +555,33 @@ class ContentEditable extends React.Component {
       multiline,
       ...props
     } = this.props;
+    let { meta_active } = this.state;
 
-    let html = bearify(content);
+    let html = bearify(content, meta_active);
 
     return (
-      <BearStyle
-        {...props}
-        ref={ref => {
-          this._element = ref;
-          innerRef(ref);
-        }}
-        style={{ ...style }}
-        contentEditable={editable}
-        dangerouslySetInnerHTML={{ __html: html }}
-        onInput={ev => this.onChange(this._element.innerText)}
-        onKeyDown={this._onKeyDown}
-        onPaste={this.onPaste}
-      />
+      <React.Fragment>
+        <Keyboard
+          onMetaChange={new_meta => {
+            if (meta_active !== new_meta) {
+              this.setState({ meta_active: new_meta });
+            }
+          }}
+        />
+        <BearStyle
+          {...props}
+          ref={ref => {
+            this._element = ref;
+            innerRef(ref);
+          }}
+          style={{ ...style }}
+          contentEditable={editable}
+          dangerouslySetInnerHTML={{ __html: html }}
+          onInput={ev => this.onChange(this._element.innerText)}
+          onKeyDown={this._onKeyDown}
+          onPaste={this.onPaste}
+        />
+      </React.Fragment>
     );
   }
 }
