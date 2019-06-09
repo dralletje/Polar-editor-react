@@ -8,6 +8,7 @@ let BearStyle = styled.div`
 
   font-size: inherit;
   z-index: 0;
+  line-height: 1.3em;
   /* line-height: 24px; */
 
   & .pre {
@@ -39,6 +40,22 @@ let BearStyle = styled.div`
     } 
   }
 
+  .bear-list-circle {
+    color: transparent;
+    caret-color: black;
+    letter-spacing: 5px;
+
+    position: relative;
+    &::before {
+      content: "•";
+      position: absolute;
+      right: 5px;
+
+      font-size: 1.2em;
+      color: rgba(200, 0, 0, .8);
+    }
+  }
+
   .subtle {
     opacity: 0.5;
   }
@@ -57,7 +74,7 @@ let BearStyle = styled.div`
   .header-1, .header-2, .header-3 {
     &:not(:first-child) {
       display: inline-block;
-      margin-bottom: 6px;
+      margin-bottom: 10px;
     }
 
     .subtle {
@@ -240,6 +257,10 @@ let bearify = (text, is_meta = false) => {
       `$1<a target="_blank" contenteditable="${
         is_meta ? "false" : "true"
       }" href="$2" title="⌘/ctrl + click to open">$2</a>`
+    )
+    .replace(
+      /(?<=$|\n)\* ([^\n]+)(?=^|\n)/g,
+      `<span class="bear-list-circle">* </span><span>$1</span>`
     )
     .replace(
       markdown_style_boundaries("_"),
