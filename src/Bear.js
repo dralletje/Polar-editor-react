@@ -40,6 +40,9 @@ let BearStyle = styled.div`
     } 
   }
 
+  .bear-list-margin {
+    letter-spacing: 5px;
+  }
   .bear-list-circle {
     color: transparent;
     caret-color: black;
@@ -72,7 +75,7 @@ let BearStyle = styled.div`
   }
 
   .header-1, .header-2, .header-3 {
-    &:not(:first-child) {
+    &:not(:last-child) {
       display: inline-block;
       margin-bottom: 10px;
     }
@@ -203,7 +206,7 @@ let setCaretPosition = d => {
 let defaultProps = {
   content: "",
   editable: true,
-  multiline: false,
+  multiline: true,
   tagName: "div",
   innerRef: () => {},
   onChange: () => {}
@@ -246,6 +249,7 @@ let markdown_style_boundaries = boundary => {
 };
 
 let url_regex = /( |^|\n)((?:http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+(?:[-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(?::[0-9]{1,5})?(?:\/.*)?)(?= |$|\n)/g;
+let unordered_list_regex = /(?<=^|\n)((?: {2})*)\* ([^\n]*)(?=$|\n)/g;
 
 let bearify = (text, is_meta = false) => {
   // TODO Replace with /proper/ markdown-like bear (that keeps all characters for cursor consistent)
@@ -259,8 +263,8 @@ let bearify = (text, is_meta = false) => {
       }" href="$2" title="⌘/ctrl + click to open">$2</a>`
     )
     .replace(
-      /(?<=$|\n)\* ([^\n]+)(?=^|\n)/g,
-      `<span class="bear-list-circle">* </span><span>$1</span>`
+      unordered_list_regex,
+      `<span class="bear-list-margin">$1</span><span class="bear-list-circle">* </span><span>$2</span>`
     )
     .replace(
       markdown_style_boundaries("_"),
@@ -512,9 +516,11 @@ class ContentEditable extends React.Component {
       } = get_current_carret_position(this._element);
       let value = `${before}*${selected}*${after}`;
 
+      this.next_cursor_position = {
+        start: position.start,
+        end: position.end + 2
+      };
       this.onChange(value);
-
-      this.next_cursor_position = position.end + 2;
       return;
     }
 
@@ -527,7 +533,10 @@ class ContentEditable extends React.Component {
       let value = `${before}/${selected}/${after}`;
 
       this.onChange(value);
-      this.next_cursor_position = position.end + 2;
+      this.next_cursor_position = {
+        start: position.start,
+        end: position.end + 2
+      };
       return;
     }
 
@@ -540,29 +549,102 @@ class ContentEditable extends React.Component {
       let value = `${before}_${selected}_${after}`;
 
       this.onChange(value);
-      this.next_cursor_position = position.end + 2;
+      this.next_cursor_position = {
+        start: position.start,
+        end: position.end + 2
+      };
       return;
     }
 
     if (ev.which === 13) {
-      if (multiline === true) {
-        if (ev.shiftKey === false) {
-          ev.preventDefault();
+      // ev.preventDefault();
 
-          let {
-            text: { before, selected, after },
-            position
-          } = get_current_carret_position(this._element);
-
-          let value = `${before}\n${after === "" ? "\n" : after}`;
-
-          this.next_cursor_position = position.end + 1;
-          this.onChange(value);
-        }
-      } else {
+      if (multiline === false) {
         ev.preventDefault();
         ev.currentTarget.blur();
+        return;
       }
+
+      if (ev.shiftKey === true) {
+        return;
+      }
+
+      ev.preventDefault();
+
+      let {
+        text: { before, selected, after },
+        position
+      } = get_current_carret_position(this._element);
+
+      if (selected.includes("\n") === false) {
+        let line_start = before.lastIndexOf("\n") + 1;
+        let line_end = after.indexOf("\n");
+
+        // prettier-ignore
+        let line = `${before.slice(line_start)}${selected}${after.slice(0, line_end)}`;
+        console.log(`line: "${line}"`);
+        let line_match = line.match(new RegExp(unordered_list_regex.source));
+        if (line_match) {
+          let [_, spaces, line_text] = line_match;
+
+          if (line_text.trim() === "") {
+            let line = null;
+            console.log("spaces.length:", spaces.length);
+            if (spaces.length === 0) {
+              this.next_cursor_position = {
+                start: position.start - 2,
+                end: position.end - 2
+              };
+              line = "";
+            } else if (spaces.length < 2) {
+              this.next_cursor_position = {
+                start: position.start - spaces.length,
+                end: position.end - spaces.length
+              };
+              line = "* ";
+            } else if (spaces.length >= 2) {
+              this.next_cursor_position = {
+                start: position.start - 2,
+                end: position.end - 2
+              };
+              line = `${' '.repeat(spaces.length - 2)}* `
+              // prettier-ignore
+            }
+
+            let value = `${before.slice(0, line_start)}  ${line}${after.slice(
+              line_end
+            )}`;
+            this.onChange(value);
+            return;
+          } else {
+            this.next_cursor_position = {
+              start: position.start + 3 + spaces.length,
+              end: position.end - selected.length + 3 + spaces.length
+            };
+            // prettier-ignore
+            let value = `${before}\n${spaces}* ${after}`;
+            this.onChange(value);
+            return;
+          }
+
+          // this.next_cursor_position = {
+          //   start: position.start + 2,
+          //   end: position.end - selected.length + 1
+          // };
+          // // prettier-ignore
+          // let value = `${before.slice(0, line_start)}  ${line}${after.slice(line_end)}`;
+          // this.onChange(value);
+          // return;
+        }
+      }
+
+      let value = `${before}\n${after === "" ? "\n" : after}`;
+
+      this.next_cursor_position = {
+        start: position.start + 1,
+        end: position.end - selected.length + 1
+      };
+      this.onChange(value);
       return;
     }
   };

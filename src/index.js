@@ -9,7 +9,6 @@ import "./styles.css";
 function App() {
   let [content, set_content] = React.useState(dedent`
     # Polar editor
-
     A basic text editor that I can use in a variantion of apps.
     Too many times I need basic editting, but also just plain text.
     I don't want any html, wysiwyg but without losing simple text editting.
@@ -25,6 +24,8 @@ function App() {
     *Lists:*
     * Unordered #1
     * Unordered #2
+      * With nesting?
+      * Would be cool
     
     1. Ordered #1
     2. Ordered #2
