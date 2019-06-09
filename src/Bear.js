@@ -58,6 +58,9 @@ let BearStyle = styled.div`
       color: rgba(200, 0, 0, .8);
     }
   }
+  .bear-list-number {
+    color: rgba(200, 0, 0, .8);
+  }
 
   .subtle {
     opacity: 0.5;
@@ -75,28 +78,31 @@ let BearStyle = styled.div`
   }
 
   .header-1, .header-2, .header-3 {
+    display: inline-block;
     &:not(:last-child) {
-      display: inline-block;
       margin-bottom: 10px;
     }
+    &:not(:first-child) {
+      margin-top: 5px;
+    }
 
-    .subtle {
+    .subtle-header {
       display: inline-block;
       margin-right: 4px;
       position: relative;
     }
-    .subtle::before {
+    .subtle-header::before {
       content: "1";
       position: absolute;
       bottom: 0;
-      right: -2px;
+      right: -4px;
       font-size: 0.5em;
       line-height: normal;
     }
   }
 
   .header-1 {
-    font-size: 1.2em;
+    font-size: 1.4em;
     font-weight: bold;
 
     .subtle::before {
@@ -105,7 +111,7 @@ let BearStyle = styled.div`
   }
 
   .header-2 {
-    font-size: 1em;
+    font-size: 1.2em;
     font-weight: bold;
 
     .subtle::before {
@@ -114,7 +120,7 @@ let BearStyle = styled.div`
   }
 
   .header-3 {
-    font-size: 1em;
+    font-weight: bold;
 
     .subtle::before {
       content: "3";
@@ -250,6 +256,7 @@ let markdown_style_boundaries = boundary => {
 
 let url_regex = /( |^|\n)((?:http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+(?:[-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(?::[0-9]{1,5})?(?:\/.*)?)(?= |$|\n)/g;
 let unordered_list_regex = /(?<=^|\n)((?: {2})*)\* ([^\n]*)(?=$|\n)/g;
+let ordered_list_regex = /(?<=^|\n)((?: {2})*)(\d+)\. ([^\n]*)(?=$|\n)/g;
 
 let bearify = (text, is_meta = false) => {
   // TODO Replace with /proper/ markdown-like bear (that keeps all characters for cursor consistent)
@@ -265,6 +272,10 @@ let bearify = (text, is_meta = false) => {
     .replace(
       unordered_list_regex,
       `<span class="bear-list-margin">$1</span><span class="bear-list-circle">* </span><span>$2</span>`
+    )
+    .replace(
+      ordered_list_regex,
+      `<span class="bear-list-margin">$1</span><span class="bear-list-number">$2</span><span class="subtle">. </span><span>$3</span>`
     )
     .replace(
       markdown_style_boundaries("_"),
@@ -298,15 +309,15 @@ let bearify = (text, is_meta = false) => {
     )
     .replace(
       /(\n|^)# ([^\n]+)(?=\n|$)/g,
-      '$1<span class="header-1"><span class="subtle">#</span> $2</span>'
+      '$1<span class="header-1"><span class="subtle subtle-header">#</span> $2</span>'
     )
     .replace(
       /(\n|^)## ([^\n]+)(?=\n|$)/g,
-      `$1<span class="header-2"><span class="subtle">#\u2060</span> $2</span>`
+      `$1<span class="header-2"><span class="subtle subtle-header">#\u2060</span> $2</span>`
     )
     .replace(
       /(\n|^)### ([^\n]+)(?=\n|$)/g,
-      `$1<span class="header-3"><span class="subtle">#\u2060\u2060</span> $2</span>`
+      `$1<span class="header-3"><span class="subtle subtle-header">#\u2060\u2060</span> $2</span>`
     );
   // Zero width non breaking space: &#8288;
   // Also zero width non breaking space: &#65279;
@@ -554,6 +565,35 @@ class ContentEditable extends React.Component {
         end: position.end + 2
       };
       return;
+    }
+
+    let surround_keys = {
+      "'": "'",
+      '"': '"',
+      "(": ")",
+      "`": "`",
+      _: "_",
+      "*": "*",
+      "/": "/"
+    };
+    if (surround_keys[ev.key]) {
+      let after_key = surround_keys[ev.key];
+      let {
+        text: { before, selected, after },
+        position
+      } = get_current_carret_position(this._element);
+
+      if (selected !== "") {
+        ev.preventDefault();
+        this.next_cursor_position = {
+          start: position.start,
+          end: position.end + 2
+        };
+        let value = `${before}${ev.key}${selected}${after_key}${after}`;
+        console.log("value:", value);
+        this.onChange(value);
+        return;
+      }
     }
 
     if (ev.which === 13) {
