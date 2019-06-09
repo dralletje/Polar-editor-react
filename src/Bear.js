@@ -53,6 +53,7 @@ let BearStyle = styled.div`
       content: "•";
       position: absolute;
       right: 5px;
+      pointer-events: none;
 
       font-size: 1.2em;
       color: rgba(200, 0, 0, .8);
