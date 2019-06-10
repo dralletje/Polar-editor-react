@@ -39,6 +39,8 @@ function App() {
 
     - Checkbox #1
     - Checkbox #2
+
+    Fin
   `);
   return (
     <div className="App">

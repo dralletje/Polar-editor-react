@@ -63,6 +63,25 @@ let BearStyle = styled.div`
       color: rgba(200, 0, 0, .8);
     }
   }
+  .bear-list-dash {
+    color: transparent;
+    caret-color: black;
+    letter-spacing: 5px;
+
+    display: inline-block;
+    width: 20px;
+    
+    position: relative;
+    &::before {
+      content: "-";
+      position: absolute;
+      right: 5px;
+      pointer-events: none;
+
+      font-size: 1.2em;
+      color: rgba(200, 0, 0, .8);
+    }
+  }
   .bear-list-number {
     color: rgba(200, 0, 0, .8);
     caret-color: black;
@@ -265,6 +284,7 @@ let g = regex => new RegExp(regex.source, `${regex.flags}g`);
 
 let url_regex = /( |^|\n)((?:http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+(?:[-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(?::[0-9]{1,5})?(?:\/.*)?)(?= |$|\n)/;
 let unordered_list_regex = /(?<=^|\n)((?:\t)*)(\* )([^\n]*)()(?=$|\n)/;
+let unordered_dash_list_regex = /(?<=^|\n)((?:\t)*)(- )([^\n]*)()(?=$|\n)/;
 let ordered_list_regex = /(?<=^|\n)((?:\t)*)(\d+\. )([^\n]*)()(?=$|\n)/;
 let ordered_full_list_regex = /(?<=^|\n)(((?:\t)*)(\d+\. )([^\n]*)($|\n))+/;
 
@@ -282,6 +302,10 @@ let bearify = (text, is_meta = false) => {
     .replace(
       g(unordered_list_regex),
       `<span class="bear-list-margin">$1</span><span class="bear-list-circle">* </span><span>$3</span>`
+    )
+    .replace(
+      g(unordered_dash_list_regex),
+      `<span class="bear-list-margin">$1</span><span class="bear-list-dash">- </span><span>$3</span>`
     )
     // .replace(
     //   g(ordered_list_regex),
@@ -711,7 +735,9 @@ class ContentEditable extends React.Component {
         // prettier-ignore
         let line = `${before.slice(line_start)}${selected}${after.slice(0, line_end)}`;
         let line_match =
-          line.match(unordered_list_regex) || line.match(ordered_list_regex);
+          line.match(unordered_list_regex) ||
+          line.match(ordered_list_regex) ||
+          line.match(unordered_dash_list_regex);
         // console.log("line_match:", line_match);
         if (line_match) {
           let [_, tabs, prefix, line_text, suffix] = line_match;
