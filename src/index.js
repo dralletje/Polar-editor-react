@@ -24,11 +24,18 @@ function App() {
     *Lists:*
     * Unordered #1
     * Unordered #2
-      * With nesting?
-      * Would be cool
+    ${"\t"}* With nesting?
+    ${"\t"}* Would be cool
+    ${"\t"}Some more text
+    ${"\t"}Awesome!
     
     1. Ordered #1
     2. Ordered #2
+    ${"\t"}1. With nesting
+    ${"\t"}Normal text for reference
+    ${"\t"}2. To one leven
+    ${"\t"}${"\t"}1. And more nesting
+    ${"\t"}${"\t"}2. Very cool
 
     - Checkbox #1
     - Checkbox #2

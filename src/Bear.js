@@ -40,14 +40,18 @@ let BearStyle = styled.div`
     } 
   }
 
+  tab-size: 40px;
   .bear-list-margin {
-    letter-spacing: 5px;
+    tab-size: 20px;
   }
   .bear-list-circle {
     color: transparent;
     caret-color: black;
     letter-spacing: 5px;
 
+    display: inline-block;
+    width: 20px;
+    
     position: relative;
     &::before {
       content: "•";
@@ -61,6 +65,8 @@ let BearStyle = styled.div`
   }
   .bear-list-number {
     color: rgba(200, 0, 0, .8);
+    caret-color: black;
+    display: inline-block;
   }
 
   .subtle {
@@ -255,9 +261,12 @@ let markdown_style_boundaries = boundary => {
   return regex;
 };
 
-let url_regex = /( |^|\n)((?:http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+(?:[-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(?::[0-9]{1,5})?(?:\/.*)?)(?= |$|\n)/g;
-let unordered_list_regex = /(?<=^|\n)((?: {2})*)\* ([^\n]*)(?=$|\n)/g;
-let ordered_list_regex = /(?<=^|\n)((?: {2})*)(\d+)\. ([^\n]*)(?=$|\n)/g;
+let g = regex => new RegExp(regex.source, `${regex.flags}g`);
+
+let url_regex = /( |^|\n)((?:http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+(?:[-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(?::[0-9]{1,5})?(?:\/.*)?)(?= |$|\n)/;
+let unordered_list_regex = /(?<=^|\n)((?:\t)*)(\* )([^\n]*)()(?=$|\n)/;
+let ordered_list_regex = /(?<=^|\n)((?:\t)*)(\d+\. )([^\n]*)()(?=$|\n)/;
+let ordered_full_list_regex = /(?<=^|\n)(((?:\t)*)(\d+\. )([^\n]*)($|\n))+/;
 
 let bearify = (text, is_meta = false) => {
   // TODO Replace with /proper/ markdown-like bear (that keeps all characters for cursor consistent)
@@ -265,18 +274,59 @@ let bearify = (text, is_meta = false) => {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(
-      url_regex,
+      g(url_regex),
       `$1<a target="_blank" contenteditable="${
         is_meta ? "false" : "true"
       }" href="$2" title="⌘/ctrl + click to open">$2</a>`
     )
     .replace(
-      unordered_list_regex,
-      `<span class="bear-list-margin">$1</span><span class="bear-list-circle">* </span><span>$2</span>`
+      g(unordered_list_regex),
+      `<span class="bear-list-margin">$1</span><span class="bear-list-circle">* </span><span>$3</span>`
     )
+    // .replace(
+    //   g(ordered_list_regex),
+    //   `<span class="bear-list-margin">$1</span><span class="bear-list-number">$3</span><span class="subtle">. </span><span>$3</span>`
+    // )
     .replace(
-      ordered_list_regex,
-      `<span class="bear-list-margin">$1</span><span class="bear-list-number">$2</span><span class="subtle">. </span><span>$3</span>`
+      g(ordered_full_list_regex),
+      full_match => {
+        let current_text = full_match;
+        let result = "";
+
+        let current_indentation = null;
+        let count = null;
+
+        while (current_text !== "") {
+          let [line, tabs, prefix, text, suffix] = current_text.match(
+            ordered_list_regex
+          );
+
+          if (tabs.length !== current_indentation) {
+            count = parseInt(prefix, 10);
+            current_indentation = tabs.length;
+          }
+
+          let count_format = `<span class="bear-list-number" style="width: 20px">${count}. </span>`;
+          // console.log("tabs:", tabs.length);
+          // console.log("tabs.slice(0, -1):", tabs.slice(0, -1));
+          let prefix_format =
+            tabs.length === 0
+              ? count_format
+              : `${tabs.slice(
+                  0,
+                  -1
+                )}<span class="bear-list-margin">${"\t"}</span>${count_format}`;
+          // console.log("prefix_format:", prefix_format);
+          let formatted_line = `${prefix_format}<span>${text}</span>${suffix}\n`;
+          // prettier-ignore
+          result = result + formatted_line;
+          count = count + 1;
+          current_text = current_text.slice(line.length + 1);
+        }
+
+        return result;
+      }
+      // `<span class="bear-list-margin">$1</span><span class="bear-list-number">$2</span><span class="subtle">. </span><span>$3</span>`
     )
     .replace(
       markdown_style_boundaries("_"),
@@ -494,6 +544,12 @@ class ContentEditable extends React.Component {
   }
 
   _onKeyDown = ev => {
+    // let {
+    //   text: { before, selected, after },
+    //   position
+    // } = get_current_carret_position(this._element);
+    // console.log("position");
+
     // ev.preventDefault();
     let { multiline } = this.props;
 
@@ -591,13 +647,44 @@ class ContentEditable extends React.Component {
           end: position.end + 2
         };
         let value = `${before}${ev.key}${selected}${after_key}${after}`;
-        console.log("value:", value);
+        // console.log("value:", value);
         this.onChange(value);
         return;
       }
     }
 
-    if (ev.which === 13) {
+    if (ev.key === "Tab") {
+      ev.preventDefault();
+      let {
+        text: { before, selected, after },
+        position
+      } = get_current_carret_position(this._element);
+
+      let lines_start_position = selected.startsWith("\n")
+        ? before.length
+        : before.lastIndexOf("\n");
+      let lines_end_position = selected.endsWith("\n")
+        ? 0
+        : after.indexOf("\n");
+
+      // prettier-ignore
+      let lines = `${before.slice(lines_start_position)}${selected}${after.slice(0, lines_end_position)}`
+      let indented_lines = ev.shiftKey
+        ? lines.replace(/\n\t/g, "\n")
+        : lines.replace(/\n/g, "\n\t");
+      before = before.slice(0, lines_start_position);
+      after = after.slice(lines_end_position);
+
+      this.next_cursor_position = {
+        start:
+          position.start +
+          (ev.shiftKey ? (lines.startsWith("\n\t") ? -1 : 0) : 1),
+        end: position.end + (indented_lines.length - lines.length)
+      };
+      this.onChange(`${before}${indented_lines}${after}`);
+    }
+
+    if (ev.key === "Enter") {
       // ev.preventDefault();
 
       if (multiline === false) {
@@ -623,47 +710,51 @@ class ContentEditable extends React.Component {
 
         // prettier-ignore
         let line = `${before.slice(line_start)}${selected}${after.slice(0, line_end)}`;
-        console.log(`line: "${line}"`);
-        let line_match = line.match(new RegExp(unordered_list_regex.source));
+        let line_match =
+          line.match(unordered_list_regex) || line.match(ordered_list_regex);
+        // console.log("line_match:", line_match);
         if (line_match) {
-          let [_, spaces, line_text] = line_match;
+          let [_, tabs, prefix, line_text, suffix] = line_match;
+
+          // console.log("line_text:", line_text);
 
           if (line_text.trim() === "") {
             let line = null;
-            console.log("spaces.length:", spaces.length);
-            if (spaces.length === 0) {
+            if (tabs.length === 0) {
               this.next_cursor_position = {
-                start: position.start - 2,
-                end: position.end - 2
+                start: position.start - prefix.length,
+                end: position.end - prefix.length
               };
               line = "";
-            } else if (spaces.length < 2) {
+            } else if (tabs.length === 1) {
               this.next_cursor_position = {
-                start: position.start - spaces.length,
-                end: position.end - spaces.length
+                start: position.start - 1,
+                end: position.end - 1
               };
-              line = "* ";
-            } else if (spaces.length >= 2) {
+              line = `${prefix}`;
+            } else if (tabs.length > 1) {
               this.next_cursor_position = {
-                start: position.start - 2,
-                end: position.end - 2
+                start: position.start - 1,
+                end: position.end - 1
               };
-              line = `${' '.repeat(spaces.length - 2)}* `
+              line = `${' '.repeat(tabs.length - 1)}${prefix}`
               // prettier-ignore
             }
 
-            let value = `${before.slice(0, line_start)}  ${line}${after.slice(
+            // console.log("line:", line);
+
+            let value = `${before.slice(0, line_start)}${line}${after.slice(
               line_end
             )}`;
             this.onChange(value);
             return;
           } else {
+            let line = `${tabs}${prefix}${suffix}`;
             this.next_cursor_position = {
-              start: position.start + 3 + spaces.length,
-              end: position.end - selected.length + 3 + spaces.length
+              start: position.start + 1 + line.length,
+              end: position.start + 1 + line.length
             };
-            // prettier-ignore
-            let value = `${before}\n${spaces}* ${after}`;
+            let value = `${before}\n${line}${after}`;
             this.onChange(value);
             return;
           }
@@ -721,7 +812,10 @@ class ContentEditable extends React.Component {
           style={{ ...style }}
           contentEditable={editable}
           dangerouslySetInnerHTML={{ __html: html }}
-          onInput={ev => this.onChange(this._element.innerText)}
+          onInput={ev => {
+            console.log("this._element.innerText:", this._element.innerText);
+            this.onChange(this._element.innerText);
+          }}
           onKeyDown={this._onKeyDown}
           onPaste={this.onPaste}
         />
