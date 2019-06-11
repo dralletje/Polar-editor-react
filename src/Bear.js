@@ -274,9 +274,10 @@ let regexp = (regexps, ...escapes) => {
   );
 };
 
-let markdown_style_boundaries = boundary => {
+let markdown_style_boundaries = (boundary, { with_spaces = false } = {}) => {
   let b = boundary;
-  let regex = regexp`/(^| |[^a-zA-Z0-9:${b}]|\\n)${b}([^ ${b}](?:[^\n${b}]*[^ ${b}])?)${b}(?= |[^a-zA-Z0-9${b}]|$|\\n)/g`;
+  // prettier-ignore
+  let regex = regexp`/(^| |[^a-zA-Z0-9:${b}]|\\n)${b}([^ ${b}](?:[^\n${b}]*[^${with_spaces ? '' : ' '}${b}])?)${b}(?= |[^a-zA-Z0-9${b}]|$|\\n)/g`;
   return regex;
 };
 
@@ -378,7 +379,7 @@ let bearify = (text, is_meta = false) => {
       '$1<b><span class="subtle">*</span>$2<span class="subtle">*</span></b>'
     )
     .replace(
-      markdown_style_boundaries("`"),
+      markdown_style_boundaries("`", { with_spaces: true }),
       // /\*([])([^ *](?:[^*]*[^ *])?)\*/g,
       '$1<span class="pre"><span class="subtle">`</span><span>$2</span><span class="subtle">`</span></span>'
     )
@@ -737,7 +738,8 @@ class ContentEditable extends React.Component {
         let line_match =
           line.match(unordered_list_regex) ||
           line.match(ordered_list_regex) ||
-          line.match(unordered_dash_list_regex);
+          line.match(unordered_dash_list_regex) ||
+          line.match(/^(\t+)()(.*)()$/);
         // console.log("line_match:", line_match);
         if (line_match) {
           let [_, tabs, prefix, line_text, suffix] = line_match;
