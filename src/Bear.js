@@ -130,12 +130,23 @@ let BearStyle = styled.div`
 
   .header-1, .header-2, .header-3 {
     display: inline-block;
-    &:not(:last-child) {
-      margin-bottom: 10px;
+    &.header-1 {
+      &:not(:last-child) {
+        margin-bottom: 10px;
+      }
+      &:not(:first-child) {
+        margin-top: 5px;
+      }
     }
-    &:not(:first-child) {
-      margin-top: 5px;
+    &.header-2 {
+      &:not(:last-child) {
+        margin-bottom: 10px;
+      }
+      &:not(:first-child) {
+        margin-top: 5px;
+      }
     }
+
 
     .subtle-header {
       display: inline-block;

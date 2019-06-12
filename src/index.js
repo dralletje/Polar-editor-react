@@ -13,28 +13,21 @@ function App() {
     A basic text editor that I can use in a variation of apps.
     Too many times I need basic editing, but also just plain text.
     I don't want any html, wysiwyg but without losing simple text editing.
-    
-    ## Features
+
+    #⁠ Features
     * *Bold*
     * _Underline_
     * /italic/
     * \`Code\`
     * https://google.com links
     * Even cooler [Click here](https://google.com)
-    
+
+    * *Quotes:*
     > Quote
     > something
     > Maybe *for fun*
 
-    ## To be implemented
-    *Lists:*
-    * Unordered #1
-    * Unordered #2
-    ${"\t"}* With nesting?
-    ${"\t"}* Would be cool
-    ${"\t"}Some more text
-    ${"\t"}Awesome!
-    
+    * *Numbered lists:*
     1. Ordered #1
     2. Ordered #2
     ${"\t"}1. With nesting
@@ -43,6 +36,7 @@ function App() {
     ${"\t"}${"\t"}1. And more nesting
     ${"\t"}${"\t"}2. Very cool
 
+    * Dashed links (soon to be checkmarks?)
     - Checkbox #1
     - Checkbox #2
 
