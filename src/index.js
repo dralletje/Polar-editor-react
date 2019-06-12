@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import dedent from "dedent";
 
 import Bear from "./Bear.js";
+import { RegexWidget } from "./RegexWidget.js";
 
 import "./styles.css";
 
@@ -45,6 +46,7 @@ function App() {
   return (
     <div className="App">
       <h1>Hello CodeSandbox</h1>
+      {/* <RegexWidget /> */}
       <div
         style={{
           margin: 20,

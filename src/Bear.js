@@ -37,7 +37,7 @@ let BearStyle = styled.div`
       background-color: white;
       box-shadow: 0px 0px 0px 1px rgb(203, 203, 203) inset;
       border-radius: 2px;
-    } 
+    }
   }
 
   tab-size: 40px;
@@ -51,7 +51,7 @@ let BearStyle = styled.div`
 
     display: inline-block;
     width: 20px;
-    
+
     position: relative;
     &::before {
       content: "•";
@@ -70,7 +70,7 @@ let BearStyle = styled.div`
 
     display: inline-block;
     width: 20px;
-    
+
     position: relative;
     &::before {
       content: "-";
@@ -214,9 +214,16 @@ function getCaretData(root_element, start, end) {
     position = position + node.nodeValue.length;
   }
 
+  let last_node = last(nodes);
   return {
-    start: start_result || { node: last(nodes), position: position },
-    end: end_result || { node: last(nodes), position: position }
+    start: start_result || {
+      node: last_node,
+      offset: last_node.nodeValue.length
+    },
+    end: end_result || {
+      node: last(nodes),
+      offset: last_node.nodeValue.length
+    }
   };
 }
 
@@ -231,7 +238,7 @@ let setCaretPosition = d => {
     sel.removeAllRanges();
     sel.addRange(range);
   } catch (err) {
-    console.log("err:", err);
+    console.log("Range err:", err);
   }
 };
 
@@ -426,6 +433,10 @@ let get_current_carret_position = element => {
   };
 };
 
+window.get_current_carret_position = get_current_carret_position;
+window.getCaretData = getCaretData;
+window.setCaretPosition = setCaretPosition;
+
 let useEvent = ({ target, name, onEvent, passive, capture }) => {
   useEffect(() => {
     target.addEventListener(name, onEvent, { capture, passive });
@@ -546,8 +557,10 @@ class ContentEditable extends React.Component {
     }
   }
 
-  sanitiseValue(val) {
-    let value = val.replace(/\u{2060}/gu, "#");
+  sanitiseValue(value) {
+    value = value.replace(/#\u{2060}{2}/gu, "###");
+    value = value.replace(/#\u{2060}/gu, "##");
+    value = value.replace(/\u{2060}/gu, "");
     return value;
   }
 
@@ -565,6 +578,7 @@ class ContentEditable extends React.Component {
 
   onChange(raw_value) {
     let value = this.sanitiseValue(raw_value);
+    console.log({ value });
     this.props.onChange(value);
   }
 
@@ -729,22 +743,24 @@ class ContentEditable extends React.Component {
         position
       } = get_current_carret_position(this._element);
 
+      console.group("Enter pressed");
+
       if (selected.includes("\n") === false) {
         let line_start = before.lastIndexOf("\n") + 1;
         let line_end = after.indexOf("\n");
 
         // prettier-ignore
         let line = `${before.slice(line_start)}${selected}${after.slice(0, line_end)}`;
+        // console.log({ line });
         let line_match =
           line.match(unordered_list_regex) ||
           line.match(ordered_list_regex) ||
           line.match(unordered_dash_list_regex) ||
           line.match(/^(\t+)()(.*)()$/);
-        // console.log("line_match:", line_match);
+        // console.log({ line_match });
+
         if (line_match) {
           let [_, tabs, prefix, line_text, suffix] = line_match;
-
-          // console.log("line_text:", line_text);
 
           if (line_text.trim() === "") {
             let line = null;
@@ -769,12 +785,11 @@ class ContentEditable extends React.Component {
               // prettier-ignore
             }
 
-            // console.log("line:", line);
-
             let value = `${before.slice(0, line_start)}${line}${after.slice(
               line_end
             )}`;
             this.onChange(value);
+            console.groupEnd("Enter pressed");
             return;
           } else {
             let line = `${tabs}${prefix}${suffix}`;
@@ -784,6 +799,7 @@ class ContentEditable extends React.Component {
             };
             let value = `${before}\n${line}${after}`;
             this.onChange(value);
+            console.groupEnd("Enter pressed");
             return;
           }
 
@@ -800,11 +816,14 @@ class ContentEditable extends React.Component {
 
       let value = `${before}\n${after === "" ? "\n" : after}`;
 
+      console.log(`value #5:`, value);
+
       this.next_cursor_position = {
         start: position.start + 1,
         end: position.end - selected.length + 1
       };
       this.onChange(value);
+      console.groupEnd("Enter pressed");
       return;
     }
   };
@@ -841,7 +860,6 @@ class ContentEditable extends React.Component {
           contentEditable={editable}
           dangerouslySetInnerHTML={{ __html: html }}
           onInput={ev => {
-            console.log("this._element.innerText:", this._element.innerText);
             this.onChange(this._element.innerText);
           }}
           onKeyDown={this._onKeyDown}
