@@ -10,9 +10,9 @@ import "./styles.css";
 function App() {
   let [content, set_content] = React.useState(dedent`
     # Polar editor
-    A basic text editor that I can use in a variantion of apps.
-    Too many times I need basic editting, but also just plain text.
-    I don't want any html, wysiwyg but without losing simple text editting.
+    A basic text editor that I can use in a variation of apps.
+    Too many times I need basic editing, but also just plain text.
+    I don't want any html, wysiwyg but without losing simple text editing.
     
     ## Features
     * *Bold*
@@ -20,6 +20,11 @@ function App() {
     * /italic/
     * \`Code\`
     * https://google.com links
+    * Even cooler [Click here](https://google.com)
+    
+    > Quote
+    > something
+    > Maybe *for fun*
 
     ## To be implemented
     *Lists:*

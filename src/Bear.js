@@ -11,6 +11,8 @@ let BearStyle = styled.div`
   line-height: 1.3em;
   /* line-height: 24px; */
 
+  --accent: rgba(200, 0, 0);
+
   & .pre {
     position: relative;
     font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
@@ -60,7 +62,7 @@ let BearStyle = styled.div`
       pointer-events: none;
 
       font-size: 1.2em;
-      color: rgba(200, 0, 0, .8);
+      color: var(--accent);
     }
   }
   .bear-list-dash {
@@ -79,11 +81,33 @@ let BearStyle = styled.div`
       pointer-events: none;
 
       font-size: 1.2em;
-      color: rgba(200, 0, 0, .8);
+      color: var(--accent);
+    }
+  }
+  .bear-quote-line {
+    color: transparent;
+    caret-color: black;
+    letter-spacing: 5px;
+
+    display: inline-block;
+    width: 20px;
+
+    position: relative;
+    &::before {
+      content: "";
+      position: absolute;
+      right: 10px;
+      pointer-events: none;
+
+      font-size: 1.2em;
+      background-color: var(--accent);
+      width: 3px;
+      top: 0;
+      bottom: 0;
     }
   }
   .bear-list-number {
-    color: rgba(200, 0, 0, .8);
+    color: var(--accent);
     caret-color: black;
     display: inline-block;
   }
@@ -101,6 +125,7 @@ let BearStyle = styled.div`
 
   .bear-underline {
     text-decoration: underline;
+    text-decoration-color: var(--accent);
   }
 
   .header-1, .header-2, .header-3 {
@@ -155,6 +180,45 @@ let BearStyle = styled.div`
 
   a {
     text-decoration: underline;
+    position: relative;
+    color: var(--accent);
+
+    cursor: text;
+    /* cursor: pointer; */
+
+    &[contenteditable="false"] {
+      cursor: pointer;
+    }
+
+    &:hover {
+      background-color: rgba(0, 0, 0, .1);
+    }
+  }
+  a::before {
+    content: "ctrl + click to open";
+    color: black;
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    width: 120px;
+    font-size: 0.7em;
+    background-color: #fff;
+    display: block;
+    padding-left: 6px;
+    padding-right: 6px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    border-radius: 3px;
+    box-shadow: 0px 1px 3px #00000063;
+    z-index: 100;
+    pointer-events: none;
+    line-height: 1.2em;
+
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  a:hover::before {
+    opacity: 1;
   }
 
   &:empty::after {
@@ -295,12 +359,23 @@ let unordered_list_regex = /(?<=^|\n)((?:\t)*)(\* )([^\n]*)()(?=$|\n)/;
 let unordered_dash_list_regex = /(?<=^|\n)((?:\t)*)(- )([^\n]*)()(?=$|\n)/;
 let ordered_list_regex = /(?<=^|\n)((?:\t)*)(\d+\. )([^\n]*)()(?=$|\n)/;
 let ordered_full_list_regex = /(?<=^|\n)(((?:\t)*)(\d+\. )([^\n]*)($|\n))+/;
+let quote_list = /(?<=^|\n)((?:\t)*)((?:&gt;|>) )([^\n]*)()(?=$|\n)/;
+
+let subtle = text => `<span class="subtle">${text}</span>`;
 
 let bearify = (text, is_meta = false) => {
   // TODO Replace with /proper/ markdown-like bear (that keeps all characters for cursor consistent)
   let content = text
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
+    .replace(
+      /\[([^\]]*)?\]\(([^)]*)\)/g,
+      `<a target="_blank" contenteditable="${
+        is_meta ? "false" : "true"
+      }" href="$2" title="⌘/ctrl + click to open">${subtle("[")}$1${subtle(
+        `]($2)`
+      )}</a>`
+    )
     .replace(
       g(url_regex),
       `$1<a target="_blank" contenteditable="${
@@ -310,6 +385,10 @@ let bearify = (text, is_meta = false) => {
     .replace(
       g(unordered_list_regex),
       `<span class="bear-list-margin">$1</span><span class="bear-list-circle">* </span><span>$3</span>`
+    )
+    .replace(
+      g(quote_list),
+      `<span class="bear-list-margin">$1</span><span class="bear-quote-line">&gt; </span><span>$3</span>`
     )
     .replace(
       g(unordered_dash_list_regex),
@@ -578,7 +657,7 @@ class ContentEditable extends React.Component {
 
   onChange(raw_value) {
     let value = this.sanitiseValue(raw_value);
-    console.log({ value });
+    // console.log({ value });
     this.props.onChange(value);
   }
 
@@ -623,10 +702,16 @@ class ContentEditable extends React.Component {
       } = get_current_carret_position(this._element);
       let value = `${before}*${selected}*${after}`;
 
-      this.next_cursor_position = {
-        start: position.start,
-        end: position.end + 2
-      };
+      this.next_cursor_position =
+        selected === ""
+          ? {
+              start: position.start + 1,
+              end: position.end - 1
+            }
+          : {
+              start: position.start,
+              end: position.end + 2
+            };
       this.onChange(value);
       return;
     }
@@ -640,10 +725,16 @@ class ContentEditable extends React.Component {
       let value = `${before}/${selected}/${after}`;
 
       this.onChange(value);
-      this.next_cursor_position = {
-        start: position.start,
-        end: position.end + 2
-      };
+      this.next_cursor_position =
+        selected === ""
+          ? {
+              start: position.start + 1,
+              end: position.end - 1
+            }
+          : {
+              start: position.start,
+              end: position.end + 2
+            };
       return;
     }
 
@@ -656,10 +747,16 @@ class ContentEditable extends React.Component {
       let value = `${before}_${selected}_${after}`;
 
       this.onChange(value);
-      this.next_cursor_position = {
-        start: position.start,
-        end: position.end + 2
-      };
+      this.next_cursor_position =
+        selected === ""
+          ? {
+              start: position.start + 1,
+              end: position.end - 1
+            }
+          : {
+              start: position.start,
+              end: position.end + 2
+            };
       return;
     }
 
@@ -743,7 +840,7 @@ class ContentEditable extends React.Component {
         position
       } = get_current_carret_position(this._element);
 
-      console.group("Enter pressed");
+      // console.group("Enter pressed");
 
       if (selected.includes("\n") === false) {
         let line_start = before.lastIndexOf("\n") + 1;
@@ -755,6 +852,7 @@ class ContentEditable extends React.Component {
         let line_match =
           line.match(unordered_list_regex) ||
           line.match(ordered_list_regex) ||
+          line.match(quote_list) ||
           line.match(unordered_dash_list_regex) ||
           line.match(/^(\t+)()(.*)()$/);
         // console.log({ line_match });
@@ -816,7 +914,7 @@ class ContentEditable extends React.Component {
 
       let value = `${before}\n${after === "" ? "\n" : after}`;
 
-      console.log(`value #5:`, value);
+      // console.log(`value #5:`, value);
 
       this.next_cursor_position = {
         start: position.start + 1,
