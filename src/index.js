@@ -14,7 +14,7 @@ function App() {
     Too many times I need basic editing, but also just plain text.
     I don't want any html, wysiwyg but without losing simple text editing.
 
-    #⁠ Features
+    ### Features
     * *Bold*
     * _Underline_
     * /italic/
@@ -30,8 +30,9 @@ function App() {
     * *Numbered lists:*
     1. Ordered #1
     2. Ordered #2
+    ${"\t"}This should align to "Ordered #2"
     ${"\t"}1. With nesting
-    ${"\t"}Normal text for reference
+    ${"\t"}${"\t"}Normal text for reference
     ${"\t"}2. To one leven
     ${"\t"}${"\t"}1. And more nesting
     ${"\t"}${"\t"}2. Very cool

@@ -11,8 +11,6 @@ let BearStyle = styled.div`
   line-height: 1.3em;
   /* line-height: 24px; */
 
-  --accent: rgba(200, 0, 0);
-
   & .pre {
     position: relative;
     font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
@@ -62,7 +60,7 @@ let BearStyle = styled.div`
       pointer-events: none;
 
       font-size: 1.2em;
-      color: var(--accent);
+      color: ${p => p.accent_color};
     }
   }
   .bear-list-dash {
@@ -81,13 +79,13 @@ let BearStyle = styled.div`
       pointer-events: none;
 
       font-size: 1.2em;
-      color: var(--accent);
+      color: ${p => p.accent_color};
     }
   }
   .bear-quote-line {
     color: transparent;
     caret-color: black;
-    letter-spacing: 5px;
+    letter-spacing: 2px;
 
     display: inline-block;
     width: 20px;
@@ -96,18 +94,18 @@ let BearStyle = styled.div`
     &::before {
       content: "";
       position: absolute;
-      right: 10px;
+      right: 12px;
       pointer-events: none;
 
       font-size: 1.2em;
-      background-color: var(--accent);
+      background-color: ${p => p.accent_color};
       width: 3px;
       top: 0;
       bottom: 0;
     }
   }
   .bear-list-number {
-    color: var(--accent);
+    color: ${p => p.accent_color};
     caret-color: black;
     display: inline-block;
   }
@@ -125,7 +123,7 @@ let BearStyle = styled.div`
 
   .bear-underline {
     text-decoration: underline;
-    text-decoration-color: var(--accent);
+    text-decoration-color: ${p => p.accent_color};
   }
 
   .header-1, .header-2, .header-3 {
@@ -192,7 +190,7 @@ let BearStyle = styled.div`
   a {
     text-decoration: underline;
     position: relative;
-    color: var(--accent);
+    color: ${p => p.accent_color};
 
     cursor: text;
     /* cursor: pointer; */
@@ -371,6 +369,7 @@ let unordered_dash_list_regex = /(?<=^|\n)((?:\t)*)(- )([^\n]*)()(?=$|\n)/;
 let ordered_list_regex = /(?<=^|\n)((?:\t)*)(\d+\. )([^\n]*)()(?=$|\n)/;
 let ordered_full_list_regex = /(?<=^|\n)(((?:\t)*)(\d+\. )([^\n]*)($|\n))+/;
 let quote_list = /(?<=^|\n)((?:\t)*)((?:&gt;|>) )([^\n]*)()(?=$|\n)/;
+let indented_line = /(?<=^|\n)(\t+)()(.*)()(?=$|\n)/;
 
 let subtle = text => `<span class="subtle">${text}</span>`;
 
@@ -396,6 +395,10 @@ let bearify = (text, is_meta = false) => {
     .replace(
       g(unordered_list_regex),
       `<span class="bear-list-margin">$1</span><span class="bear-list-circle">* </span><span>$3</span>`
+    )
+    .replace(
+      g(quote_list),
+      `<span class="bear-list-margin">$1</span><span class="bear-quote-line">&gt; </span><span>$3</span>`
     )
     .replace(
       g(quote_list),
@@ -491,6 +494,10 @@ let bearify = (text, is_meta = false) => {
     .replace(
       /(\n|^)### ([^\n]+)(?=\n|$)/g,
       `$1<span class="header-3"><span class="subtle subtle-header">#\u2060\u2060</span> $2</span>`
+    )
+    .replace(
+      g(indented_line),
+      `<span class="bear-list-margin">$1</span><span>$3</span>`
     );
   // Zero width non breaking space: &#8288;
   // Also zero width non breaking space: &#65279;
@@ -865,12 +872,13 @@ class ContentEditable extends React.Component {
           line.match(ordered_list_regex) ||
           line.match(quote_list) ||
           line.match(unordered_dash_list_regex) ||
-          line.match(/^(\t+)()(.*)()$/);
+          line.match(indented_line);
         // console.log({ line_match });
 
         if (line_match) {
           let [_, tabs, prefix, line_text, suffix] = line_match;
 
+          console.log({ tabs });
           if (line_text.trim() === "") {
             let line = null;
             if (tabs.length === 0) {
@@ -890,7 +898,7 @@ class ContentEditable extends React.Component {
                 start: position.start - 1,
                 end: position.end - 1
               };
-              line = `${' '.repeat(tabs.length - 1)}${prefix}`
+              line = `${'\t'.repeat(tabs.length - 1)}${prefix}`
               // prettier-ignore
             }
 
@@ -944,6 +952,7 @@ class ContentEditable extends React.Component {
       editable,
       style,
       multiline,
+      accent_color,
       ...props
     } = this.props;
     let { meta_active } = this.state;
@@ -961,11 +970,12 @@ class ContentEditable extends React.Component {
         />
         <BearStyle
           {...props}
+          accent_color={accent_color || "rgba(200, 0, 0)"}
           ref={ref => {
             this._element = ref;
             innerRef(ref);
           }}
-          style={{ ...style }}
+          style={style}
           contentEditable={editable}
           dangerouslySetInnerHTML={{ __html: html }}
           onInput={ev => {
