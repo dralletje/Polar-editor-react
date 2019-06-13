@@ -7,22 +7,18 @@ let BearStyle = styled.div`
   white-space: pre-wrap;
 
   font-size: inherit;
+  /* font-size: 30px; */
   z-index: 0;
-  line-height: 1.3em;
-  /* line-height: 24px; */
+  line-height: 1.35em;
 
   & .pre {
     position: relative;
     font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
 
     font-size: inherit;
-    padding-left: 4px;
-    padding-right: 4px;
 
-    & span:not(.subtle) {
-      /* Not sure why, but need this to show above the ::before */
-      /* opacity: 0.9; */
-    }
+    padding-right: 0.23em;
+    padding-left: 0.23em;
 
     &::before {
       content: "";
@@ -35,28 +31,29 @@ let BearStyle = styled.div`
       right: 0;
 
       background-color: white;
-      box-shadow: 0px 0px 0px 1px rgb(203, 203, 203) inset;
-      border-radius: 2px;
+      box-shadow: 0px 0px 0px 0.05em rgb(203, 203, 203) inset;
+
+      border-radius: 0.11em;
     }
   }
 
-  tab-size: 40px;
+  /* tab-size: 2em; */
   .bear-list-margin {
-    tab-size: 20px;
+    tab-size: 1.1em;
   }
   .bear-list-circle {
     color: transparent;
     caret-color: black;
-    letter-spacing: 5px;
+    letter-spacing: 0.27em;
 
     display: inline-block;
-    width: 20px;
+    width: 1.1em;
 
     position: relative;
     &::before {
       content: "•";
       position: absolute;
-      right: 5px;
+      right: 0.27em;
       pointer-events: none;
 
       font-size: 1.2em;
@@ -66,16 +63,16 @@ let BearStyle = styled.div`
   .bear-list-dash {
     color: transparent;
     caret-color: black;
-    letter-spacing: 5px;
+    letter-spacing: 0.27em;
 
     display: inline-block;
-    width: 20px;
+    width: 1em;
 
     position: relative;
     &::before {
       content: "-";
       position: absolute;
-      right: 5px;
+      right: 0.27em;
       pointer-events: none;
 
       font-size: 1.2em;
@@ -85,21 +82,21 @@ let BearStyle = styled.div`
   .bear-quote-line {
     color: transparent;
     caret-color: black;
-    letter-spacing: 2px;
+    letter-spacing: 0.1em;
 
     display: inline-block;
-    width: 20px;
+    width: 1.1em;
 
     position: relative;
     &::before {
       content: "";
       position: absolute;
-      right: 12px;
+      right: 0.66em;
       pointer-events: none;
 
       font-size: 1.2em;
       background-color: ${p => p.accent_color};
-      width: 3px;
+      width: 0.1em;
       top: 0;
       bottom: 0;
     }
@@ -129,33 +126,38 @@ let BearStyle = styled.div`
   .header-1, .header-2, .header-3 {
     display: inline-block;
     &.header-1 {
-      &:not(:last-child) {
+      /* &:not(:last-child) {
         margin-bottom: 10px;
       }
       &:not(:first-child) {
         margin-top: 5px;
-      }
+      } */
+      margin-bottom: 0.55em;
+      margin-top: 0.27em;
     }
     &.header-2 {
-      &:not(:last-child) {
+      /* &:not(:last-child) {
         margin-bottom: 10px;
       }
       &:not(:first-child) {
         margin-top: 5px;
-      }
+      } */
+
+      margin-bottom: 0.55em;
+      margin-top: 0.27em;
     }
 
 
     .subtle-header {
       display: inline-block;
-      margin-right: 4px;
+      margin-right: 0.22em;
       position: relative;
     }
     .subtle-header::before {
       content: "1";
       position: absolute;
       bottom: 0;
-      right: -4px;
+      right: -0.22em;
       font-size: 0.5em;
       line-height: normal;
     }
@@ -288,16 +290,24 @@ function getCaretData(root_element, start, end) {
   }
 
   let last_node = last(nodes);
-  return {
-    start: start_result || {
-      node: last_node,
-      offset: last_node.nodeValue.length
-    },
-    end: end_result || {
-      node: last(nodes),
-      offset: last_node.nodeValue.length
-    }
-  };
+
+  if (last_node == null) {
+    return {
+      start: { node: root_element, offset: 0 },
+      end: { node: root_element, offset: 0 }
+    };
+  } else {
+    return {
+      start: start_result || {
+        node: last_node,
+        offset: last_node.nodeValue.length
+      },
+      end: end_result || {
+        node: last(nodes),
+        offset: last_node.nodeValue.length
+      }
+    };
+  }
 }
 
 // setting the caret with this info  is also standard
@@ -431,7 +441,7 @@ let bearify = (text, is_meta = false) => {
             current_indentation = tabs.length;
           }
 
-          let count_format = `<span class="bear-list-number" style="width: 20px">${count}. </span>`;
+          let count_format = `<span class="bear-list-number" style="width: 1em">${count}. </span>`;
           // console.log("tabs:", tabs.length);
           // console.log("tabs.slice(0, -1):", tabs.slice(0, -1));
           let prefix_format =
@@ -724,7 +734,7 @@ class ContentEditable extends React.Component {
         selected === ""
           ? {
               start: position.start + 1,
-              end: position.end - 1
+              end: position.start + 1
             }
           : {
               start: position.start,
@@ -747,7 +757,7 @@ class ContentEditable extends React.Component {
         selected === ""
           ? {
               start: position.start + 1,
-              end: position.end - 1
+              end: position.start + 1
             }
           : {
               start: position.start,
@@ -769,7 +779,7 @@ class ContentEditable extends React.Component {
         selected === ""
           ? {
               start: position.start + 1,
-              end: position.end - 1
+              end: position.start + 1
             }
           : {
               start: position.start,
