@@ -26,6 +26,7 @@ function App() {
     > Quote
     > something
     > Maybe *for fun*
+    ${"\t"}${"\t"}- Michiel Dral
 
     * *Numbered lists:*
     1. Ordered #1
@@ -58,6 +59,7 @@ function App() {
         <Bear
           style={{ minHeight: 50, textAlign: "left" }}
           content={content}
+          editable={true}
           multiline
           onChange={set_content}
         />

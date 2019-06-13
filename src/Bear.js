@@ -3,14 +3,33 @@ import { last, escapeRegExp, debounce } from "lodash";
 import styled from "styled-components";
 
 let BearStyle = styled.div`
-  position: relative;
+  /* Render "\n" as newlines, instead of just "<br />" */
   white-space: pre-wrap;
 
   font-size: inherit;
-  /* font-size: 30px; */
-  z-index: 0;
   line-height: 1.35em;
 
+  /* Use special styles for when we are in view mode */
+  /* Maybe also make separate component for this, that creates simpler html even */
+  /* TODO Render non-editable by default, make editable styles the exception */
+  ${p => (p.contentEditable === false ? "&" : "&.not")} {
+    .subtle,
+    .subtle-effect-only {
+      display: none !important;
+    }
+
+    a {
+      cursor: pointer !important;
+      /* &:hover {
+        background-color: transparent !important;
+      } */
+      &::before {
+        display: none !important;
+      }
+    }
+  }
+
+  /* Render code nice */
   & .pre {
     position: relative;
     font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
@@ -37,7 +56,6 @@ let BearStyle = styled.div`
     }
   }
 
-  /* tab-size: 2em; */
   .bear-list-margin {
     tab-size: 1.1em;
   }
@@ -150,15 +168,15 @@ let BearStyle = styled.div`
 
     .subtle-header {
       display: inline-block;
-      margin-right: 0.22em;
       position: relative;
     }
     .subtle-header::before {
-      content: "1";
+      content: "";
       position: absolute;
       bottom: 0;
-      right: -0.22em;
+      right: 0.1em;
       font-size: 0.5em;
+      letter-spacing: 0;
       line-height: normal;
     }
   }
@@ -206,7 +224,7 @@ let BearStyle = styled.div`
     }
   }
   a::before {
-    content: "ctrl + click to open";
+    content: "⌘/ctrl + click to open";
     color: black;
     position: absolute;
     top: calc(100% + 5px);
@@ -347,7 +365,7 @@ let regexp = (regexps, ...escapes) => {
   if (!head_match) {
     throw new Error(`Wow`);
   }
-  let tail_match = tail.match(/(.*)\/([g])\s*$/);
+  let tail_match = tail.match(/(.*)\/([g]*)\s*$/);
   if (!tail_match) {
     throw new Error(`Wow`);
   }
@@ -358,7 +376,15 @@ let regexp = (regexps, ...escapes) => {
 
   return new RegExp(
     `${head}${escapes
-      .map((escapee, i) => `${escapeRegExp(escapee)}${body[i] || ""}`)
+      .map((escapee, i) => {
+        if (escapee instanceof RegExp) {
+          return `${escapee.source}${body[i] || ""}`;
+        }
+        if (typeof escapee === "string") {
+          return `${escapeRegExp(escapee)}${body[i] || ""}`;
+        }
+        throw new Error(`Unknown escappee type in regexp "${escapee}"`);
+      })
       .join("")}${tail}`,
     modifiers
   );
@@ -366,12 +392,22 @@ let regexp = (regexps, ...escapes) => {
 
 let markdown_style_boundaries = (boundary, { with_spaces = false } = {}) => {
   let b = boundary;
+  let margin = regexp`/[^a-zA-Z0-9:${b}]/`;
+  let padding = regexp`/[^${with_spaces ? "" : " "}${b}\n<>]/`;
+  let body = regexp`/[^\n<>${b}]*/`;
+
   // prettier-ignore
-  let regex = regexp`/(^| |[^a-zA-Z0-9:${b}]|\\n)${b}([^ ${b}](?:[^\n${b}]*[^${with_spaces ? '' : ' '}${b}])?)${b}(?= |[^a-zA-Z0-9${b}]|$|\\n)/g`;
+  let regex = regexp`/(${margin})${b}(${padding}(?:${body}${padding})?)${b}(?=${margin})/g`;
   return regex;
 };
 
 let g = regex => new RegExp(regex.source, `${regex.flags}g`);
+
+// let character_map = {
+//   '-': '&#45;',
+//   '*': '&#42;',
+//   '_': '&#95;',
+// }
 
 let url_regex = /( |^|\n)((?:http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+(?:[-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(?::[0-9]{1,5})?(?:\/.*)?)(?= |$|\n)/;
 let unordered_list_regex = /(?<=^|\n)((?:\t)*)(\* )([^\n]*)()(?=$|\n)/;
@@ -382,25 +418,29 @@ let quote_list = /(?<=^|\n)((?:\t)*)((?:&gt;|>) )([^\n]*)()(?=$|\n)/;
 let indented_line = /(?<=^|\n)(\t+)()(.*)()(?=$|\n)/;
 
 let subtle = text => `<span class="subtle">${text}</span>`;
+// let html = (character) => {
+//   return character_map[character] || character;
+// }
 
 let bearify = (text, is_meta = false) => {
   // TODO Replace with /proper/ markdown-like bear (that keeps all characters for cursor consistent)
   let content = text
+    // .replace(regexp`/[${Object.keys(character_map).join('')}]/g`, character => {
+    //   return html(character);
+    // })
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(
-      /\[([^\]]*)?\]\(([^)]*)\)/g,
+      /\[([^\]]*)?\]\(([^)\n]*)\)/g,
       `<a target="_blank" contenteditable="${
-        is_meta ? "false" : "true"
-      }" href="$2" title="⌘/ctrl + click to open">${subtle("[")}$1${subtle(
-        `]($2)`
-      )}</a>`
+        is_meta ? "false" : "inherit"
+      }" href="$2" title="$2">${subtle("[")}$1${subtle(`]($2)`)}</a>`
     )
     .replace(
       g(url_regex),
       `$1<a target="_blank" contenteditable="${
-        is_meta ? "false" : "true"
-      }" href="$2" title="⌘/ctrl + click to open">$2</a>`
+        is_meta ? "false" : "inherit"
+      }" href="$2" title="$2">$2</a>`
     )
     .replace(
       g(unordered_list_regex),
@@ -465,45 +505,39 @@ let bearify = (text, is_meta = false) => {
     )
     .replace(
       markdown_style_boundaries("_"),
-      // /_([^ _](?:[^_]*[^ _])?)_/g,
       '$1<span class="bear-underline"><span class="subtle-effect-only">_</span>$2<span class="subtle-effect-only">_</span></span>'
     )
     .replace(
       markdown_style_boundaries("/"),
-      // /_([^ _](?:[^_]*[^ _])?)_/g,
       '$1<i><span class="subtle">/</span>$2<span class="subtle">/</span></i>'
     )
     .replace(
       markdown_style_boundaries("~"),
-      // /\*([])([^ *](?:[^*]*[^ *])?)\*/g,
       '$1<del><span class="subtle-effect-only">~</span>$2<span class="subtle-effect-only">~</span></del>'
     )
     .replace(
       markdown_style_boundaries("-"),
-      // /\*([])([^ *](?:[^*]*[^ *])?)\*/g,
       '$1<del><span class="subtle-effect-only">-</span>$2<span class="subtle-effect-only">-</span></del>'
     )
     .replace(
       markdown_style_boundaries("*"),
-      // /\*([])([^ *](?:[^*]*[^ *])?)\*/g,
       '$1<b><span class="subtle">*</span>$2<span class="subtle">*</span></b>'
     )
     .replace(
       markdown_style_boundaries("`", { with_spaces: true }),
-      // /\*([])([^ *](?:[^*]*[^ *])?)\*/g,
       '$1<span class="pre"><span class="subtle">`</span><span>$2</span><span class="subtle">`</span></span>'
     )
     .replace(
       /(\n|^)# ([^\n]+)(?=\n|$)/g,
-      '$1<span class="header-1"><span class="subtle subtle-header">#</span> $2</span>'
+      '$1<span class="header-1"><span class="subtle subtle-header"># </span>$2</span>'
     )
     .replace(
       /(\n|^)## ([^\n]+)(?=\n|$)/g,
-      `$1<span class="header-2"><span class="subtle subtle-header">#\u2060</span> $2</span>`
+      `$1<span class="header-2"><span class="subtle subtle-header">#\u2060 </span>$2</span>`
     )
     .replace(
       /(\n|^)### ([^\n]+)(?=\n|$)/g,
-      `$1<span class="header-3"><span class="subtle subtle-header">#\u2060\u2060</span> $2</span>`
+      `$1<span class="header-3"><span class="subtle subtle-header">#\u2060\u2060 </span>$2</span>`
     )
     .replace(
       g(indented_line),
@@ -621,7 +655,12 @@ class ContentEditable extends React.Component {
 
   getSnapshotBeforeUpdate(prevProps) {
     if (document.activeElement !== this._element) {
-      return null;
+      let range = document.getSelection().getRangeAt(0);
+
+      // Worry later about selections that extend outside of our element
+      if (!this._element.contains(range.commonAncestorContainer)) {
+        return;
+      }
     }
 
     if (this.next_cursor_position != null) {
@@ -678,15 +717,24 @@ class ContentEditable extends React.Component {
     let pastedData = clipboardData.getData("Text");
 
     let {
-      text: { before, selected, after }
+      text: { before, selected, after },
+      position: { start }
     } = get_current_carret_position(this._element);
+    this.next_cursor_position = {
+      start: start + pastedData.length,
+      end: start + pastedData.length
+    };
     this.onChange(`${before}${pastedData}${after}`);
   };
 
   onChange(raw_value) {
-    let value = this.sanitiseValue(raw_value);
-    // console.log({ value });
-    this.props.onChange(value);
+    if (this.props.editable) {
+      let value = this.sanitiseValue(raw_value);
+      // console.log({ value });
+      this.props.onChange(value);
+    } else {
+      this.next_cursor_position = null;
+    }
   }
 
   _onKeyDown = ev => {
