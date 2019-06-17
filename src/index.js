@@ -14,7 +14,7 @@ function App() {
     Too many times I need basic editing, but also just plain text.
     I don't want any html, wysiwyg but without losing simple text editing.
 
-    ### Features
+    ### Basic Features
     * *Bold*
     * _Underline_
     * /italic/
@@ -22,13 +22,15 @@ function App() {
     * https://google.com links
     * Even cooler [Click here](https://google.com)
 
-    * *Quotes:*
+    ### Quotes
     > Quote
     > something
     > Maybe *for fun*
     ${"\t"}${"\t"}- Michiel Dral
 
-    * *Numbered lists:*
+    ${"\t"}> #1 very #2 very #3 very #4 very #5 very #6 very #7 very #8 very #9 very #10 very #11 very #11 very #12 very #13 very #14 long quote
+
+    ### Numbered lists
     1. Ordered #1
     2. Ordered #2
     ${"\t"}This should align to "Ordered #2"
@@ -38,9 +40,10 @@ function App() {
     ${"\t"}${"\t"}1. And more nesting
     ${"\t"}${"\t"}2. Very cool
 
-    * Dashed links (soon to be checkmarks?)
+    ### Dashed list
     - Checkbox #1
     - Checkbox #2
+    - Another very #1 very #2 very #3 very #4 very #5 very #6 very #7 very #8 very #9 very #10 very #11 very #11 very #12 very #13 very #14 very #15 very #16 very #17 very #18 long entry
 
     Fin
   `);

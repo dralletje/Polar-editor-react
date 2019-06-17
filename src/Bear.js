@@ -7,7 +7,15 @@ let BearStyle = styled.div`
   white-space: pre-wrap;
 
   font-size: inherit;
-  line-height: 1.35em;
+  /* line-height: 1.35em; */
+  overflow: hidden;
+
+  .bear-line {
+    /* min-height: 1.35em; */
+  }
+  .bear-hide {
+    display: none;
+  }
 
   /* Use special styles for when we are in view mode */
   /* Maybe also make separate component for this, that creates simpler html even */
@@ -38,6 +46,7 @@ let BearStyle = styled.div`
 
     padding-right: 0.23em;
     padding-left: 0.23em;
+    z-index: 1;
 
     &::before {
       content: "";
@@ -56,16 +65,17 @@ let BearStyle = styled.div`
     }
   }
 
-  .bear-list-margin {
-    tab-size: 1.1em;
-  }
   .bear-list-circle {
     color: transparent;
     caret-color: black;
     letter-spacing: 0.27em;
 
     display: inline-block;
-    width: 1.1em;
+    width: 1.2em;
+    
+    /* span {
+      font-family: monospace;
+    } */
 
     position: relative;
     &::before {
@@ -81,10 +91,10 @@ let BearStyle = styled.div`
   .bear-list-dash {
     color: transparent;
     caret-color: black;
-    letter-spacing: 0.27em;
+    letter-spacing: 0.3em;
 
     display: inline-block;
-    width: 1em;
+    width: 1.2em;
 
     position: relative;
     &::before {
@@ -97,32 +107,89 @@ let BearStyle = styled.div`
       color: ${p => p.accent_color};
     }
   }
-  .bear-quote-line {
-    color: transparent;
-    caret-color: black;
-    letter-spacing: 0.1em;
 
+  .bear-list-margin {
+    tab-size: 1.1em;
+  }
+
+  .bear-block.bear-dashed {
     display: inline-block;
-    width: 1.1em;
-
+    padding-left: 1.1em;
     position: relative;
-    &::before {
-      content: "";
-      position: absolute;
-      right: 0.66em;
-      pointer-events: none;
 
-      font-size: 1.2em;
-      background-color: ${p => p.accent_color};
-      width: 0.1em;
-      top: 0;
-      bottom: 0;
+    .bear-quote-line {
+      margin-left: -1.1em;
+      color: transparent;
+      caret-color: black;
+      letter-spacing: 0.1em;
+
+      display: inline-block;
+      width: 1.1em;
+
+      /* position: relative; */
+      &::before {
+        content: "-";
+        position: absolute;
+        left: 0.2em;
+        pointer-events: none;
+
+        font-size: 1.2em;
+        color: ${p => p.accent_color};
+      }
     }
   }
+
+  .bear-block {
+    display: inline-block;
+    white-space: nowrap;
+    vertical-align: top;
+    position: relative;
+    width: 100%;
+
+    .bear-text {
+      display: inline-block;
+      white-space: pre-wrap;
+      padding-right: 20%;
+    }
+    .bear-list-margin {
+      white-space: pre;
+      vertical-align: top;
+    }
+    
+    .bear-quote-line {
+      white-space: pre-wrap;
+      vertical-align: top;
+
+      color: transparent;
+      caret-color: black;
+      letter-spacing: 0.135em;
+
+      display: inline-block;
+
+      width: 1.1em;
+    
+      &::before {
+        content: "";
+        position: absolute;
+        margin-left: 0.2em;
+        pointer-events: none;
+
+        font-size: 1.2em;
+        background-color: ${p => p.accent_color};
+        width: 0.16em;
+        top: 0;
+        bottom: 0;
+      }
+    }
+  }
+
   .bear-list-number {
     color: ${p => p.accent_color};
     caret-color: black;
     display: inline-block;
+
+    width: 1.11em;
+    font-variant-numeric: tabular-nums;
   }
 
   .subtle {
@@ -354,14 +421,19 @@ let defaultProps = {
 
 let regexp = (regexps, ...escapes) => {
   if (regexps.length === 1) {
-    throw new Error("Bay");
+    let regex_source = regexps[0];
+    let match = regex_source.match(/^\s*\/(.*)\/([g]*)\s*$/);
+    if (match == null) {
+      throw new Error("Bay");
+    }
+    return new RegExp(match[1], match[2]);
   }
 
   let head = regexps.slice(0, 1)[0];
   let body = regexps.slice(1, -1);
   let tail = regexps.slice(-1)[0];
 
-  let head_match = head.match(/^\s*\/(.*)/);
+  let head_match = head.match(/^\s*\/((.|\n)*)/);
   if (!head_match) {
     throw new Error(`Wow`);
   }
@@ -374,25 +446,24 @@ let regexp = (regexps, ...escapes) => {
   tail = tail_match[1];
   let modifiers = tail_match[2];
 
-  return new RegExp(
-    `${head}${escapes
-      .map((escapee, i) => {
-        if (escapee instanceof RegExp) {
-          return `${escapee.source}${body[i] || ""}`;
-        }
-        if (typeof escapee === "string") {
-          return `${escapeRegExp(escapee)}${body[i] || ""}`;
-        }
-        throw new Error(`Unknown escappee type in regexp "${escapee}"`);
-      })
-      .join("")}${tail}`,
-    modifiers
-  );
+  let source = `${head}${escapes
+    .map((escapee, i) => {
+      if (escapee instanceof RegExp) {
+        return `${escapee.source}${body[i] || ""}`;
+      }
+      if (typeof escapee === "string") {
+        return `${escapeRegExp(escapee)}${body[i] || ""}`;
+      }
+      throw new Error(`Unknown escappee type in regexp "${escapee}"`);
+    })
+    .join("")}${tail}`;
+
+  return new RegExp(source, modifiers);
 };
 
 let markdown_style_boundaries = (boundary, { with_spaces = false } = {}) => {
   let b = boundary;
-  let margin = regexp`/[^a-zA-Z0-9:${b}]/`;
+  let margin = regexp`/(?<=\n.*)[^a-zA-Z0-9:${b}]/`;
   let padding = regexp`/[^${with_spaces ? "" : " "}${b}\n<>]/`;
   let body = regexp`/[^\n<>${b}]*/`;
 
@@ -416,136 +487,179 @@ let ordered_list_regex = /(?<=^|\n)((?:\t)*)(\d+\. )([^\n]*)()(?=$|\n)/;
 let ordered_full_list_regex = /(?<=^|\n)(((?:\t)*)(\d+\. )([^\n]*)($|\n))+/;
 let quote_list = /(?<=^|\n)((?:\t)*)((?:&gt;|>) )([^\n]*)()(?=$|\n)/;
 let indented_line = /(?<=^|\n)(\t+)()(.*)()(?=$|\n)/;
+let line = /(?<=^|\n)(.+)($|\n)/;
+let empty_line = /(?<=^|\n)($|\n)/;
+
+let quote_list_block = /(?<=^|\n)(\t*)(&gt;)(?: )([^\n]*)()($|\n)/;
 
 let subtle = text => `<span class="subtle">${text}</span>`;
 // let html = (character) => {
 //   return character_map[character] || character;
 // }
 
-let bearify = (text, is_meta = false) => {
+class StringMutationBuilder {
+  mutations = [];
+
+  replace(regex, replacement) {
+    this.mutations.push({ type: "replace", regex, replacement });
+    return this;
+  }
+
+  apply(string) {
+    let result = string;
+    for (let mutation of this.mutations) {
+      if (mutation.type === "replace") {
+        result = result.replace(mutation.regex, mutation.replacement);
+      }
+    }
+    return result;
+  }
+}
+
+let create_bear_parser = (is_meta = false) => {
   // TODO Replace with /proper/ markdown-like bear (that keeps all characters for cursor consistent)
-  let content = text
-    // .replace(regexp`/[${Object.keys(character_map).join('')}]/g`, character => {
-    //   return html(character);
-    // })
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(
-      /\[([^\]]*)?\]\(([^)\n]*)\)/g,
-      `<a target="_blank" contenteditable="${
-        is_meta ? "false" : "inherit"
-      }" href="$2" title="$2">${subtle("[")}$1${subtle(`]($2)`)}</a>`
-    )
-    .replace(
-      g(url_regex),
-      `$1<a target="_blank" contenteditable="${
-        is_meta ? "false" : "inherit"
-      }" href="$2" title="$2">$2</a>`
-    )
-    .replace(
-      g(unordered_list_regex),
-      `<span class="bear-list-margin">$1</span><span class="bear-list-circle">* </span><span>$3</span>`
-    )
-    .replace(
-      g(quote_list),
-      `<span class="bear-list-margin">$1</span><span class="bear-quote-line">&gt; </span><span>$3</span>`
-    )
-    .replace(
-      g(quote_list),
-      `<span class="bear-list-margin">$1</span><span class="bear-quote-line">&gt; </span><span>$3</span>`
-    )
-    .replace(
-      g(unordered_dash_list_regex),
-      `<span class="bear-list-margin">$1</span><span class="bear-list-dash">- </span><span>$3</span>`
-    )
-    // .replace(
-    //   g(ordered_list_regex),
-    //   `<span class="bear-list-margin">$1</span><span class="bear-list-number">$3</span><span class="subtle">. </span><span>$3</span>`
-    // )
-    .replace(
-      g(ordered_full_list_regex),
-      full_match => {
-        let current_text = full_match;
-        let result = "";
+  return (
+    new StringMutationBuilder()
+      // .replace(regexp`/[${Object.keys(character_map).join('')}]/g`, character => {
+      //   return html(character);
+      // })
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(
+        /\[([^\]]*)?\]\(([^)\n]*)\)/g,
+        `<a target="_blank" contenteditable="${
+          is_meta ? "false" : "inherit"
+        }" href="$2" title="$2">${subtle("[")}$1${subtle(`]($2)`)}</a>`
+      )
+      .replace(
+        g(url_regex),
+        `$1<a target="_blank" contenteditable="${
+          is_meta ? "false" : "inherit"
+        }" href="$2" title="$2">$2</a>`
+      )
+      .replace(
+        g(unordered_list_regex),
+        `<span class="bear-list-margin">$1</span><span class="bear-list-circle"><span>* </span></span><span>$3</span>`
+      )
+      .replace(
+        g(quote_list_block),
+        (full_match, tabs, prefix, text, suffix) => {
+          // prettier-ignore
+          return `<span class="bear-block"><span class="bear-list-margin">${tabs}</span><span class="bear-quote-line">${prefix} </span><span class="bear-text">${text}</span></span>\n`
+        }
+      )
+      // .replace(
+      //   g(unordered_dash_list_block),
+      //   `<span class="bear-block bear-dashed"><span class="bear-list-margin">$1</span><span class="bear-quote-line">- </span><span>$3</span></span>\n`
+      // )
+      .replace(
+        g(unordered_dash_list_regex),
+        `<span class="bear-list-margin">$1</span><span class="bear-list-dash">- </span><span>$3</span>`
+      )
+      // .replace(
+      //   g(ordered_list_regex),
+      //   `<span class="bear-list-margin">$1</span><span class="bear-list-number">$3</span><span class="subtle">. </span><span>$3</span>`
+      // )
+      .replace(
+        g(ordered_full_list_regex),
+        full_match => {
+          let current_text = full_match;
+          let result = "";
 
-        let current_indentation = null;
-        let count = null;
+          let current_indentation = null;
+          let count = null;
 
-        while (current_text !== "") {
-          let [line, tabs, prefix, text, suffix] = current_text.match(
-            ordered_list_regex
-          );
+          while (current_text !== "") {
+            let [line, tabs, prefix, text, suffix] = current_text.match(
+              ordered_list_regex
+            );
 
-          if (tabs.length !== current_indentation) {
-            count = parseInt(prefix, 10);
-            current_indentation = tabs.length;
+            if (tabs.length !== current_indentation) {
+              count = parseInt(prefix, 10);
+              current_indentation = tabs.length;
+            }
+
+            let count_format = `<span class="bear-list-number">${count}. </span>`;
+            let prefix_format =
+              tabs.length === 0
+                ? count_format
+                : `${tabs.slice(
+                    0,
+                    -1
+                  )}<span class="bear-list-margin">${"\t"}</span>${count_format}`;
+            let formatted_line = `${prefix_format}<span>${text}</span>${suffix}\n`;
+            // prettier-ignore
+            result = result + formatted_line;
+            count = count + 1;
+            current_text = current_text.slice(line.length + 1);
           }
 
-          let count_format = `<span class="bear-list-number" style="width: 1em">${count}. </span>`;
-          // console.log("tabs:", tabs.length);
-          // console.log("tabs.slice(0, -1):", tabs.slice(0, -1));
-          let prefix_format =
-            tabs.length === 0
-              ? count_format
-              : `${tabs.slice(
-                  0,
-                  -1
-                )}<span class="bear-list-margin">${"\t"}</span>${count_format}`;
-          // console.log("prefix_format:", prefix_format);
-          let formatted_line = `${prefix_format}<span>${text}</span>${suffix}\n`;
-          // prettier-ignore
-          result = result + formatted_line;
-          count = count + 1;
-          current_text = current_text.slice(line.length + 1);
+          return result;
         }
-
-        return result;
-      }
-      // `<span class="bear-list-margin">$1</span><span class="bear-list-number">$2</span><span class="subtle">. </span><span>$3</span>`
-    )
-    .replace(
-      markdown_style_boundaries("_"),
-      '$1<span class="bear-underline"><span class="subtle-effect-only">_</span>$2<span class="subtle-effect-only">_</span></span>'
-    )
-    .replace(
-      markdown_style_boundaries("/"),
-      '$1<i><span class="subtle">/</span>$2<span class="subtle">/</span></i>'
-    )
-    .replace(
-      markdown_style_boundaries("~"),
-      '$1<del><span class="subtle-effect-only">~</span>$2<span class="subtle-effect-only">~</span></del>'
-    )
-    .replace(
-      markdown_style_boundaries("-"),
-      '$1<del><span class="subtle-effect-only">-</span>$2<span class="subtle-effect-only">-</span></del>'
-    )
-    .replace(
-      markdown_style_boundaries("*"),
-      '$1<b><span class="subtle">*</span>$2<span class="subtle">*</span></b>'
-    )
-    .replace(
-      markdown_style_boundaries("`", { with_spaces: true }),
-      '$1<span class="pre"><span class="subtle">`</span><span>$2</span><span class="subtle">`</span></span>'
-    )
-    .replace(
-      /(\n|^)# ([^\n]+)(?=\n|$)/g,
-      '$1<span class="header-1"><span class="subtle subtle-header"># </span>$2</span>'
-    )
-    .replace(
-      /(\n|^)## ([^\n]+)(?=\n|$)/g,
-      `$1<span class="header-2"><span class="subtle subtle-header">#\u2060 </span>$2</span>`
-    )
-    .replace(
-      /(\n|^)### ([^\n]+)(?=\n|$)/g,
-      `$1<span class="header-3"><span class="subtle subtle-header">#\u2060\u2060 </span>$2</span>`
-    )
-    .replace(
-      g(indented_line),
-      `<span class="bear-list-margin">$1</span><span>$3</span>`
-    );
+        // `<span class="bear-list-margin">$1</span><span class="bear-list-number">$2</span><span class="subtle">. </span><span>$3</span>`
+      )
+      .replace(
+        markdown_style_boundaries("_"),
+        '$1<span class="bear-underline"><span class="subtle-effect-only">_</span>$2<span class="subtle-effect-only">_</span></span>'
+      )
+      .replace(
+        markdown_style_boundaries("/"),
+        '$1<i><span class="subtle">/</span>$2<span class="subtle">/</span></i>'
+      )
+      .replace(
+        markdown_style_boundaries("~"),
+        '$1<del><span class="subtle-effect-only">~</span>$2<span class="subtle-effect-only">~</span></del>'
+      )
+      .replace(
+        markdown_style_boundaries("-"),
+        '$1<del><span class="subtle-effect-only">-</span>$2<span class="subtle-effect-only">-</span></del>'
+      )
+      .replace(
+        markdown_style_boundaries("*"),
+        '$1<b><span class="subtle">*</span>$2<span class="subtle">*</span></b>'
+      )
+      .replace(
+        markdown_style_boundaries("`", { with_spaces: true }),
+        '$1<span class="pre"><span class="subtle">`</span><span>$2</span><span class="subtle">`</span></span>'
+      )
+      .replace(
+        /(\n|^)# ([^\n]+)(?=\n|$)/g,
+        '$1<span class="header-1"><span class="subtle subtle-header"># </span>$2</span>'
+      )
+      .replace(
+        /(\n|^)## ([^\n]+)(?=\n|$)/g,
+        `$1<span class="header-2"><span class="subtle subtle-header">#\u2060 </span>$2</span>`
+      )
+      .replace(
+        /(\n|^)### ([^\n]+)(?=\n|$)/g,
+        `$1<span class="header-3"><span class="subtle subtle-header">#\u2060\u2060 </span>$2</span>`
+      )
+      .replace(
+        g(indented_line),
+        `<span class="bear-list-margin">$1</span><span>$3</span>`
+      )
+      .replace(
+        g(empty_line),
+        `<div class="bear-line"><br /><span class="bear-hide">\n</span></div>`
+      )
+      .replace(
+        g(line),
+        `<div class="bear-line">$1<span  class="bear-hide">\n</span></div>`
+      )
+  );
   // Zero width non breaking space: &#8288;
   // Also zero width non breaking space: &#65279;
-  return content;
+};
+
+let is_meta_parser = create_bear_parser(true);
+let not_is_meta_parser = create_bear_parser(false);
+
+let bearify = (text, is_meta = false) => {
+  if (is_meta) {
+    return is_meta_parser.apply(text);
+  } else {
+    return not_is_meta_parser.apply(text);
+  }
 };
 
 let get_current_carret_position = element => {
@@ -559,7 +673,7 @@ let get_current_carret_position = element => {
   preCaretRange.setEnd(range.startContainer, range.startOffset);
   let start_offset = preCaretRange.toString().length;
 
-  let text = element.innerText || "";
+  let text = element.textContent || "";
 
   return {
     position: {
@@ -610,21 +724,29 @@ let Keyboard = ({ onMetaChange }) => {
     }
   });
 
-  // let handler = event => {
-  //   console.log("event:", event);
-  // };
-  // let anchors = scope_ref.querySelectorAll("a");
-  // for (let anchor of anchors) {
-  //   anchor.addEventListener("click", handler);
-  // }
-
-  // return () => {
-  //   for (let anchor of anchors) {
-  //     anchor.removeEventListener("click", handler);
-  //   }
-  // };
-
   return null;
+};
+
+let EditorOperations = {
+  insert_around: ({ prefix, suffix, carret_position }) => {
+    let {
+      text: { before, selected, after },
+      position
+    } = carret_position;
+
+    let text = `${before}*${selected}*${after}`;
+    let cursor_position =
+      selected === ""
+        ? {
+            start: position.start + 1,
+            end: position.start + 1
+          }
+        : {
+            start: position.start,
+            end: position.end + 2
+          };
+    return { text, cursor_position };
+  }
 };
 
 class ContentEditable extends React.Component {
@@ -673,7 +795,6 @@ class ContentEditable extends React.Component {
 
   componentDidUpdate(prevProps, prevState, snapshot) {
     if (prevProps.content !== this.props.content) {
-      // console.log('Preparing new content with length', this.props.content.length);
       if (this.just_did_undo === true) {
         this.redo_stack.push({
           content: prevProps.content,
@@ -703,13 +824,6 @@ class ContentEditable extends React.Component {
     }
   }
 
-  sanitiseValue(value) {
-    value = value.replace(/#\u{2060}{2}/gu, "###");
-    value = value.replace(/#\u{2060}/gu, "##");
-    value = value.replace(/\u{2060}/gu, "");
-    return value;
-  }
-
   onPaste = event => {
     event.preventDefault();
 
@@ -727,14 +841,21 @@ class ContentEditable extends React.Component {
     this.onChange(`${before}${pastedData}${after}`);
   };
 
-  onChange(raw_value) {
+  emitChange({ text, cursor_position = null }) {
     if (this.props.editable) {
-      let value = this.sanitiseValue(raw_value);
-      // console.log({ value });
-      this.props.onChange(value);
-    } else {
-      this.next_cursor_position = null;
+      if (cursor_position) {
+        this.next_cursor_position = cursor_position;
+      }
+
+      text = text.replace(/#\u{2060}{2}/gu, "###");
+      text = text.replace(/#\u{2060}/gu, "##");
+      text = text.replace(/\u{2060}/gu, "");
+      this.props.onChange(text);
     }
+  }
+
+  onChange(raw_value) {
+    this.emitChange({ text: raw_value });
   }
 
   _onKeyDown = ev => {
@@ -772,23 +893,13 @@ class ContentEditable extends React.Component {
 
     // Cmd + b for Bold
     if (is_meta && ev.key === "b") {
-      let {
-        text: { before, selected, after },
-        position
-      } = get_current_carret_position(this._element);
-      let value = `${before}*${selected}*${after}`;
-
-      this.next_cursor_position =
-        selected === ""
-          ? {
-              start: position.start + 1,
-              end: position.start + 1
-            }
-          : {
-              start: position.start,
-              end: position.end + 2
-            };
-      this.onChange(value);
+      this.emitChange(
+        EditorOperations.insert_around({
+          prefix: "*",
+          suffix: "*",
+          carret_position: get_current_carret_position(this._element)
+        })
+      );
       return;
     }
 
@@ -859,7 +970,6 @@ class ContentEditable extends React.Component {
           end: position.end + 2
         };
         let value = `${before}${ev.key}${selected}${after_key}${after}`;
-        // console.log("value:", value);
         this.onChange(value);
         return;
       }
@@ -936,7 +1046,6 @@ class ContentEditable extends React.Component {
         if (line_match) {
           let [_, tabs, prefix, line_text, suffix] = line_match;
 
-          console.log({ tabs });
           if (line_text.trim() === "") {
             let line = null;
             if (tabs.length === 0) {
@@ -977,25 +1086,13 @@ class ContentEditable extends React.Component {
             console.groupEnd("Enter pressed");
             return;
           }
-
-          // this.next_cursor_position = {
-          //   start: position.start + 2,
-          //   end: position.end - selected.length + 1
-          // };
-          // // prettier-ignore
-          // let value = `${before.slice(0, line_start)}  ${line}${after.slice(line_end)}`;
-          // this.onChange(value);
-          // return;
         }
       }
 
       let value = `${before}\n${after === "" ? "\n" : after}`;
-
-      // console.log(`value #5:`, value);
-
       this.next_cursor_position = {
         start: position.start + 1,
-        end: position.end - selected.length + 1
+        end: position.start + 1
       };
       this.onChange(value);
       console.groupEnd("Enter pressed");
@@ -1028,6 +1125,9 @@ class ContentEditable extends React.Component {
         />
         <BearStyle
           {...props}
+          // onselectionchange={(x) => {
+          //   console.log({ x });
+          // }}
           accent_color={accent_color || "rgba(200, 0, 0)"}
           ref={ref => {
             this._element = ref;
@@ -1037,7 +1137,7 @@ class ContentEditable extends React.Component {
           contentEditable={editable}
           dangerouslySetInnerHTML={{ __html: html }}
           onInput={ev => {
-            this.onChange(this._element.innerText);
+            this.onChange(this._element.textContent);
           }}
           onKeyDown={this._onKeyDown}
           onPaste={this.onPaste}
