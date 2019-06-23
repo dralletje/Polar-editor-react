@@ -38,7 +38,7 @@ let BearStyle = styled.div`
   }
 
   /* Render code nice */
-  & .pre {
+  & .bear-code {
     position: relative;
     font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
 
@@ -46,7 +46,7 @@ let BearStyle = styled.div`
 
     padding-right: 0.23em;
     padding-left: 0.23em;
-    z-index: 1;
+    z-index: 0;
 
     &::before {
       content: "";
@@ -65,121 +65,78 @@ let BearStyle = styled.div`
     }
   }
 
-  .bear-list-circle {
+  .bear-decoration {
     color: transparent;
     caret-color: black;
-    letter-spacing: 0.27em;
 
     display: inline-block;
-    width: 1.2em;
+    width: 1.1em;
     
-    /* span {
-      font-family: monospace;
-    } */
+    &::before {
+      pointer-events: none;
+    }
+  }
+  .bear-decoration-quote {
+    letter-spacing: 0.135em;
+    &::before {
+      content: "";
+      position: absolute;
+      margin-left: 0.2em;
+      pointer-events: none;
 
+      font-size: 1.2em;
+      background-color: ${p => p.accent_color};
+      width: 0.16em;
+      top: 0;
+      bottom: 0;
+    }
+  }
+  .bear-decoration-circle {
+    letter-spacing: 0.27em;
     position: relative;
     &::before {
       content: "•";
       position: absolute;
-      right: 0.27em;
-      pointer-events: none;
-
+      margin-left: 2px;
+      
       font-size: 1.2em;
       color: ${p => p.accent_color};
     }
   }
-  .bear-list-dash {
-    color: transparent;
-    caret-color: black;
+  .bear-decoration-dash {
     letter-spacing: 0.3em;
 
-    display: inline-block;
-    width: 1.2em;
-
-    position: relative;
     &::before {
       content: "-";
       position: absolute;
-      right: 0.27em;
-      pointer-events: none;
-
       font-size: 1.2em;
       color: ${p => p.accent_color};
     }
   }
 
-  .bear-list-margin {
+  .bear-tabs {
     tab-size: 1.1em;
   }
-
-  .bear-block.bear-dashed {
-    display: inline-block;
-    padding-left: 1.1em;
-    position: relative;
-
-    .bear-quote-line {
-      margin-left: -1.1em;
-      color: transparent;
-      caret-color: black;
-      letter-spacing: 0.1em;
-
-      display: inline-block;
-      width: 1.1em;
-
-      /* position: relative; */
-      &::before {
-        content: "-";
-        position: absolute;
-        left: 0.2em;
-        pointer-events: none;
-
-        font-size: 1.2em;
-        color: ${p => p.accent_color};
-      }
-    }
-  }
-
   .bear-block {
     display: inline-block;
     white-space: nowrap;
-    vertical-align: top;
     position: relative;
     width: 100%;
+
+    > * {
+      vertical-align: top;
+      white-space: pre-wrap;
+      display: inline-block;
+    }
 
     .bear-text {
       display: inline-block;
       white-space: pre-wrap;
       padding-right: 20%;
     }
-    .bear-list-margin {
+    .bear-tabs {
       white-space: pre;
       vertical-align: top;
-    }
-    
-    .bear-quote-line {
-      white-space: pre-wrap;
-      vertical-align: top;
-
-      color: transparent;
-      caret-color: black;
-      letter-spacing: 0.135em;
-
-      display: inline-block;
-
-      width: 1.1em;
-    
-      &::before {
-        content: "";
-        position: absolute;
-        margin-left: 0.2em;
-        pointer-events: none;
-
-        font-size: 1.2em;
-        background-color: ${p => p.accent_color};
-        width: 0.16em;
-        top: 0;
-        bottom: 0;
-      }
     }
   }
 
@@ -199,9 +156,6 @@ let BearStyle = styled.div`
     color: transparent;
     caret-color: #676a6c;
   }
-  /* .subtle {
-    color: rgb(181, 181, 181);
-  } */
 
   .bear-underline {
     text-decoration: underline;
@@ -210,28 +164,36 @@ let BearStyle = styled.div`
 
   .header-1, .header-2, .header-3 {
     display: inline-block;
+
     &.header-1 {
-      /* &:not(:last-child) {
-        margin-bottom: 10px;
-      }
-      &:not(:first-child) {
-        margin-top: 5px;
-      } */
+      font-size: 1.4em;
+      font-weight: bold;
       margin-bottom: 0.55em;
       margin-top: 0.27em;
+
+      .subtle::before {
+        content: "1";
+      }
     }
+
     &.header-2 {
-      /* &:not(:last-child) {
-        margin-bottom: 10px;
-      }
-      &:not(:first-child) {
-        margin-top: 5px;
-      } */
-
+      font-size: 1.2em;
+      font-weight: bold;
       margin-bottom: 0.55em;
       margin-top: 0.27em;
+
+      .subtle::before {
+        content: "2";
+      }
     }
 
+    &.header-3 {
+      font-weight: bold;
+
+      .subtle::before {
+        content: "3";
+      }
+    }
 
     .subtle-header {
       display: inline-block;
@@ -248,36 +210,11 @@ let BearStyle = styled.div`
     }
   }
 
-  .header-1 {
-    font-size: 1.4em;
-    font-weight: bold;
-
-    .subtle::before {
-      content: "1";
-    }
-  }
-
-  .header-2 {
-    font-size: 1.2em;
-    font-weight: bold;
-
-    .subtle::before {
-      content: "2";
-    }
-  }
-
-  .header-3 {
-    font-weight: bold;
-
-    .subtle::before {
-      content: "3";
-    }
-  }
-
   a {
     text-decoration: underline;
     position: relative;
     color: ${p => p.accent_color};
+    white-space: nowrap;
 
     cursor: text;
     /* cursor: pointer; */
@@ -290,6 +227,7 @@ let BearStyle = styled.div`
       background-color: rgba(0, 0, 0, .1);
     }
   }
+  
   a::before {
     content: "⌘/ctrl + click to open";
     color: black;
@@ -463,7 +401,7 @@ let regexp = (regexps, ...escapes) => {
 
 let markdown_style_boundaries = (boundary, { with_spaces = false } = {}) => {
   let b = boundary;
-  let margin = regexp`/(?<=\n.*)[^a-zA-Z0-9:${b}]/`;
+  let margin = regexp`/[^a-zA-Z0-9:${b}]/`;
   let padding = regexp`/[^${with_spaces ? "" : " "}${b}\n<>]/`;
   let body = regexp`/[^\n<>${b}]*/`;
 
@@ -487,10 +425,11 @@ let ordered_list_regex = /(?<=^|\n)((?:\t)*)(\d+\. )([^\n]*)()(?=$|\n)/;
 let ordered_full_list_regex = /(?<=^|\n)(((?:\t)*)(\d+\. )([^\n]*)($|\n))+/;
 let quote_list = /(?<=^|\n)((?:\t)*)((?:&gt;|>) )([^\n]*)()(?=$|\n)/;
 let indented_line = /(?<=^|\n)(\t+)()(.*)()(?=$|\n)/;
-let line = /(?<=^|\n)(.+)($|\n)/;
-let empty_line = /(?<=^|\n)($|\n)/;
+let line = /(?<=^|\n)(.+)(\n)/;
+let empty_line = /(?<=^|\n)(\n)/;
 
 let quote_list_block = /(?<=^|\n)(\t*)(&gt;)(?: )([^\n]*)()($|\n)/;
+let dash_list_block = /(?<=^|\n)(\t*)(- )([^\n]*)()($|\n)/;
 
 let subtle = text => `<span class="subtle">${text}</span>`;
 // let html = (character) => {
@@ -539,65 +478,54 @@ let create_bear_parser = (is_meta = false) => {
       )
       .replace(
         g(unordered_list_regex),
-        `<span class="bear-list-margin">$1</span><span class="bear-list-circle"><span>* </span></span><span>$3</span>`
+        `<span class="bear-block"><span class="bear-tabs">$1</span><span class="bear-decoration bear-decoration-circle"><span>* </span></span><span class="bear-text">$3</span></span>`
       )
       .replace(
         g(quote_list_block),
-        (full_match, tabs, prefix, text, suffix) => {
-          // prettier-ignore
-          return `<span class="bear-block"><span class="bear-list-margin">${tabs}</span><span class="bear-quote-line">${prefix} </span><span class="bear-text">${text}</span></span>\n`
-        }
+        `<span class="bear-block"><span class="bear-tabs">$1</span><span class="bear-decoration bear-decoration-quote">$2 </span><span class="bear-text">$3</span></span>\n`
       )
-      // .replace(
-      //   g(unordered_dash_list_block),
-      //   `<span class="bear-block bear-dashed"><span class="bear-list-margin">$1</span><span class="bear-quote-line">- </span><span>$3</span></span>\n`
-      // )
       .replace(
-        g(unordered_dash_list_regex),
-        `<span class="bear-list-margin">$1</span><span class="bear-list-dash">- </span><span>$3</span>`
+        g(dash_list_block),
+        `<span class="bear-block"><span class="bear-tabs">$1</span><span class="bear-decoration bear-decoration-dash">- </span><span class="bear-text">$3</span></span>\n`
       )
       // .replace(
       //   g(ordered_list_regex),
-      //   `<span class="bear-list-margin">$1</span><span class="bear-list-number">$3</span><span class="subtle">. </span><span>$3</span>`
+      //   `<span class="bear-tabs">$1</span><span class="bear-list-number">$3</span><span class="subtle">. </span><span>$3</span>`
       // )
-      .replace(
-        g(ordered_full_list_regex),
-        full_match => {
-          let current_text = full_match;
-          let result = "";
+      .replace(g(ordered_full_list_regex), full_match => {
+        let current_text = full_match;
+        let result = "";
 
-          let current_indentation = null;
-          let count = null;
+        let current_indentation = null;
+        let count = null;
 
-          while (current_text !== "") {
-            let [line, tabs, prefix, text, suffix] = current_text.match(
-              ordered_list_regex
-            );
+        while (current_text !== "") {
+          let [line, tabs, prefix, text, suffix] = current_text.match(
+            ordered_list_regex
+          );
 
-            if (tabs.length !== current_indentation) {
-              count = parseInt(prefix, 10);
-              current_indentation = tabs.length;
-            }
-
-            let count_format = `<span class="bear-list-number">${count}. </span>`;
-            let prefix_format =
-              tabs.length === 0
-                ? count_format
-                : `${tabs.slice(
-                    0,
-                    -1
-                  )}<span class="bear-list-margin">${"\t"}</span>${count_format}`;
-            let formatted_line = `${prefix_format}<span>${text}</span>${suffix}\n`;
-            // prettier-ignore
-            result = result + formatted_line;
-            count = count + 1;
-            current_text = current_text.slice(line.length + 1);
+          if (tabs.length !== current_indentation) {
+            count = parseInt(prefix, 10);
+            current_indentation = tabs.length;
           }
 
-          return result;
+          let count_format = `<span class="bear-list-number">${count}. </span>`;
+          let prefix_format =
+            tabs.length === 0
+              ? count_format
+              : `${tabs.slice(
+                  0,
+                  -1
+                )}<span class="bear-tabs">${"\t"}</span>${count_format}`;
+          let formatted_line = `<span class="bear-block">${prefix_format}<span class="bear-text">${text}</span>${suffix}</span>\n`;
+          // prettier-ignore
+          result = result + formatted_line;
+          count = count + 1;
+          current_text = current_text.slice(line.length + 1);
         }
-        // `<span class="bear-list-margin">$1</span><span class="bear-list-number">$2</span><span class="subtle">. </span><span>$3</span>`
-      )
+
+        return result;
+      })
       .replace(
         markdown_style_boundaries("_"),
         '$1<span class="bear-underline"><span class="subtle-effect-only">_</span>$2<span class="subtle-effect-only">_</span></span>'
@@ -620,7 +548,7 @@ let create_bear_parser = (is_meta = false) => {
       )
       .replace(
         markdown_style_boundaries("`", { with_spaces: true }),
-        '$1<span class="pre"><span class="subtle">`</span><span>$2</span><span class="subtle">`</span></span>'
+        '$1<span class="bear-code"><span class="subtle">`</span><span>$2</span><span class="subtle">`</span></span>'
       )
       .replace(
         /(\n|^)# ([^\n]+)(?=\n|$)/g,
@@ -628,15 +556,15 @@ let create_bear_parser = (is_meta = false) => {
       )
       .replace(
         /(\n|^)## ([^\n]+)(?=\n|$)/g,
-        `$1<span class="header-2"><span class="subtle subtle-header">#\u2060 </span>$2</span>`
+        `$1<span class="header-2"><span class="subtle subtle-header">#<span class="bear-hide">#</span> </span>$2</span>`
       )
       .replace(
         /(\n|^)### ([^\n]+)(?=\n|$)/g,
-        `$1<span class="header-3"><span class="subtle subtle-header">#\u2060\u2060 </span>$2</span>`
+        `$1<span class="header-3"><span class="subtle subtle-header">#<span class="bear-hide">##</span> </span>$2</span>`
       )
       .replace(
         g(indented_line),
-        `<span class="bear-list-margin">$1</span><span>$3</span>`
+        `<span class="bear-tabs">$1</span><span>$3</span>`
       )
       .replace(
         g(empty_line),
@@ -688,9 +616,26 @@ let get_current_carret_position = element => {
   };
 };
 
-window.get_current_carret_position = get_current_carret_position;
-window.getCaretData = getCaretData;
-window.setCaretPosition = setCaretPosition;
+let copy_text_to_clipboard = str => {
+  const el = document.createElement("textarea"); // Create a <textarea> element
+  el.value = str; // Set its value to the string that you want copied
+  el.setAttribute("readonly", ""); // Make it readonly to be tamper-proof
+  el.style.position = "absolute";
+  el.style.left = "-9999px"; // Move outside the screen to make it invisible
+  document.body.appendChild(el); // Append the <textarea> element to the HTML document
+  const selected =
+    document.getSelection().rangeCount > 0 // Check if there is any content selected previously
+      ? document.getSelection().getRangeAt(0) // Store selection if found
+      : false; // Mark as false to know no selection existed before
+  el.select(); // Select the <textarea> content
+  document.execCommand("copy"); // Copy - only works as a result of a user action (e.g. click events)
+  document.body.removeChild(el); // Remove the <textarea> element
+  if (selected) {
+    // If a selection existed before copying
+    document.getSelection().removeAllRanges(); // Unselect everything on the HTML document
+    document.getSelection().addRange(selected); // Restore the original selection
+  }
+};
 
 let useEvent = ({ target, name, onEvent, passive, capture }) => {
   useEffect(() => {
@@ -839,6 +784,26 @@ class ContentEditable extends React.Component {
       end: start + pastedData.length
     };
     this.onChange(`${before}${pastedData}${after}`);
+  };
+
+  onCopy = event => {
+    event.preventDefault();
+
+    let {
+      text: { selected }
+    } = get_current_carret_position(this._element);
+    copy_text_to_clipboard(selected);
+  };
+
+  onCut = event => {
+    event.preventDefault();
+
+    let {
+      text: { before, selected, after }
+    } = get_current_carret_position(this._element);
+
+    copy_text_to_clipboard(selected);
+    this.emitChange({ text: `${before}${after}` });
   };
 
   emitChange({ text, cursor_position = null }) {
@@ -1141,6 +1106,8 @@ class ContentEditable extends React.Component {
           }}
           onKeyDown={this._onKeyDown}
           onPaste={this.onPaste}
+          onCopy={this.onCopy}
+          onCut={this.onCut}
         />
       </React.Fragment>
     );

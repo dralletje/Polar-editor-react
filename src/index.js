@@ -38,7 +38,7 @@ function App() {
     ${"\t"}${"\t"}Normal text for reference
     ${"\t"}2. To one leven
     ${"\t"}${"\t"}1. And more nesting
-    ${"\t"}${"\t"}2. Very cool
+    ${"\t"}${"\t"}2. Very very very very very very very very very very cool
 
     ### Dashed list
     - Checkbox #1
