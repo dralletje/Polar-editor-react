@@ -799,17 +799,21 @@ class ContentEditable extends React.Component {
     event.preventDefault();
 
     let {
-      text: { before, selected, after }
+      text: { before, selected, after },
+      position: { start }
     } = get_current_carret_position(this._element);
 
     copy_text_to_clipboard(selected);
-    this.emitChange({ text: `${before}${after}` });
+    this.emitChange({ text: `${before}${after}`, cursor_position: start });
   };
 
   emitChange({ text, cursor_position = null }) {
     if (this.props.editable) {
       if (cursor_position) {
-        this.next_cursor_position = cursor_position;
+        this.next_cursor_position =
+          typeof cursor_position === "number"
+            ? { start: cursor_position, end: cursor_position }
+            : cursor_position;
       }
 
       text = text.replace(/#\u{2060}{2}/gu, "###");
